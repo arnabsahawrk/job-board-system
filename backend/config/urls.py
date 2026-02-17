@@ -1,8 +1,36 @@
 from django.contrib import admin
 from django.urls import include, path
 from config import settings
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions
 
-urlpatterns = []
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Job Board System (Jobly) - API Documentation",
+        default_version="v1",
+        description=(
+            "API documentation for Job Board System (Jobly) built with Django REST Framework. "
+            "This documentation provides details on available endpoints, request/response formats, "
+            "and authentication methods for developers integrating with the Jobly API."
+        ),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
+
+urlpatterns = [
+    path(
+        "swagger/",
+        schema_view.with_ui("swagger", cache_timeout=0),
+        name="schema-swagger-ui",
+    ),
+    path("api/", include("apps.authentications.urls")),
+    path("api/", include("apps.jobs.urls")),
+    path("api/", include("apps.applications.urls")),
+    path("api/", include("apps.reviews.urls")),
+]
 
 if settings.DEBUG:
     urlpatterns += [
