@@ -11,17 +11,28 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
     class Meta(BaseUserCreateSerializer.Meta):
         model = User
-        fields = ("id", "full_name", "email", "role", "password")
+        fields = (
+            "id",
+            "full_name",
+            "email",
+            "role",
+            "password",
+            "is_active",
+        )
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ("phone_number", "bio", "avatar")
+        fields = (
+            "phone_number",
+            "bio",
+            "avatar",
+        )
 
 
 class UserSerializer(BaseUserSerializer):
-    profile = UserProfileSerializer(read_only=True)
+    profile = UserProfileSerializer()
 
     class Meta(BaseUserSerializer.Meta):
         model = User
@@ -35,3 +46,4 @@ class UserSerializer(BaseUserSerializer):
             "created_at",
             "updated_at",
         )
+        read_only_fields = ("email", "role", "is_active", "created_at", "updated_at")

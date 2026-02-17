@@ -60,14 +60,8 @@ class UserProfile(models.Model):
     avatar = models.ImageField(
         upload_to="avatars/",
         blank=True,
-        default="https://i.postimg.cc/NM1cX9cm/profile.png",
+        null=True,
     )
-    resume = models.FileField(upload_to="resumes/", blank=True, null=True)
-    skills = models.TextField(blank=True, null=True)
-    experience_years = models.PositiveIntegerField(default=0)
-
-    company_name = models.CharField(max_length=255, blank=True, null=True)
-    company_website = models.URLField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
