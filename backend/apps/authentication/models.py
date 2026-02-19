@@ -68,6 +68,8 @@ class UserProfile(models.Model):
             validate_file_size,
         ],
     )
+    skills = models.TextField(blank=True, null=True)
+    experience_years = models.PositiveIntegerField(blank=True, null=True, default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

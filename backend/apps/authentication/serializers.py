@@ -28,6 +28,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "phone_number",
             "bio",
             "avatar",
+            "skills",
+            "experience_years",
         )
 
 
