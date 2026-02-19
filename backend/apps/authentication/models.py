@@ -5,6 +5,8 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 from django.utils import timezone
+from django.core.validators import FileExtensionValidator
+from apps.core.validators import validate_file_size
 
 
 class UserManager(BaseUserManager):
@@ -61,7 +63,10 @@ class UserProfile(models.Model):
         upload_to="avatars/",
         blank=True,
         null=True,
-        default="avatars/default.jpg",
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png"]),
+            validate_file_size,
+        ],
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

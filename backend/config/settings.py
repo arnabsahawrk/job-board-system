@@ -36,8 +36,9 @@ INSTALLED_APPS = [
     "django_filters",
     "cloudinary_storage",
     "cloudinary",
+    "apps.core",
     "apps.applications",
-    "apps.authentications",
+    "apps.authentication",
     "apps.jobs",
     "apps.reviews",
 ]
@@ -97,7 +98,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_MODEL = "authentications.User"
+AUTH_USER_MODEL = "authentication.User"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
@@ -137,9 +138,9 @@ REST_FRAMEWORK = {
 
 DJOSER = {
     "SERIALIZERS": {
-        "user_create": "apps.authentications.serializers.UserCreateSerializer",
-        "user": "apps.authentications.serializers.UserSerializer",
-        "current_user": "apps.authentications.serializers.UserSerializer",
+        "user_create": "apps.authentication.serializers.UserCreateSerializer",
+        "user": "apps.authentication.serializers.UserSerializer",
+        "current_user": "apps.authentication.serializers.UserSerializer",
     },
 }
 

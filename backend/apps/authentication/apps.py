@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class AuthenticationsConfig(AppConfig):
-    name = "apps.authentications"
+    name = "apps.authentication"
 
     def ready(self):
-        import apps.authentications.signals  # noqa: F401
+        import apps.authentication.signals  # noqa: F401

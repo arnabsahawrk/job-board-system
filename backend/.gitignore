@@ -4,11 +4,7 @@
 *.pyc
 __pycache__
 db.sqlite3
-media/**
-!media/**/
-!media/**/default.jpg
-!media/**/default.png
-!media/**/default.pdf
+media
 
 # Backup files # 
 *.bak 

@@ -1,3 +1,6 @@
-from django.shortcuts import render
+from rest_framework.viewsets import ModelViewSet
+from apps.jobs.models import Job
 
-# Create your views here.
+
+class JobViewSet(ModelViewSet):
+    queryset = Job.objects.all()

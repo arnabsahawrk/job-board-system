@@ -3,7 +3,7 @@ from djoser.serializers import (
     UserSerializer as BaseUserSerializer,
 )
 from rest_framework import serializers
-from apps.authentications.models import User, UserProfile
+from apps.authentication.models import User, UserProfile
 
 
 class UserCreateSerializer(BaseUserCreateSerializer):

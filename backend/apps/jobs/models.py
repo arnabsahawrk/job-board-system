@@ -45,7 +45,6 @@ class Job(models.Model):
         blank=True,
         null=True,
         upload_to="company_logos/",
-        default="company_logos/default.jpg",
     )
 
     application_deadline = models.DateTimeField(blank=True, null=True)
