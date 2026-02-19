@@ -12,8 +12,9 @@ from apps.applications.serializers import (
     ApplicationCreateSerializer,
     ApplicationStatusUpdateSerializer,
 )
-from apps.authentication.serializers import UserSerializer
+from apps.authentication.serializers import UserDetailSerializer
 from apps.applications.serializers import ApplicationFeedbackSerializer
+from apps.core.services import Services
 
 
 class ApplicationViewSet(viewsets.ModelViewSet):
@@ -35,11 +36,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     ordering_fields = ["applied_at", "status"]
     ordering = ["-applied_at"]
 
-    @staticmethod
-    def _user_role(user):
-        """Safely return user role for typed request.user access."""
-        return getattr(user, "role", None)
-
     def get_serializer_class(self):
         """Return different serializer based on action"""
         if self.action == "retrieve":
@@ -59,10 +55,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
 
-        if self._user_role(user) == "seeker":
+        if Services.user_role(user) == "seeker":
             # Job seekers see their own applications
             return Application.objects.filter(applicant=user)
-        elif self._user_role(user) == "recruiter":
+        elif Services.user_role(user) == "recruiter":
             # Recruiters see applications for their jobs
             return Application.objects.filter(job__recruiter=user)
 
@@ -71,7 +67,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Create application (job seeker only)"""
         # Check if user is a job seeker
-        if self._user_role(request.user) != "seeker":
+        if Services.user_role(request.user) != "seeker":
             return Response(
                 {"error": "Only job seekers can apply for jobs"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -128,7 +124,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def my_applications(self, request):
         """Get all applications by current job seeker"""
-        if self._user_role(request.user) != "seeker":
+        if Services.user_role(request.user) != "seeker":
             return Response(
                 {"error": "Only job seekers can view their applications"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -141,7 +137,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def job_applications(self, request):
         """Get all applications for recruiter's jobs"""
-        if self._user_role(request.user) != "recruiter":
+        if Services.user_role(request.user) != "recruiter":
             return Response(
                 {"error": "Only recruiters can view job applications"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -242,15 +238,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        serializer = UserSerializer(application.applicant, context={"request": request})
+        serializer = UserDetailSerializer(
+            application.applicant, context={"request": request}
+        )
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def status_summary(self, request):
         """Get summary of application statuses"""
-        if self._user_role(request.user) == "seeker":
+        if Services.user_role(request.user) == "seeker":
             applications = Application.objects.filter(applicant=request.user)
-        elif self._user_role(request.user) == "recruiter":
+        elif Services.user_role(request.user) == "recruiter":
             applications = Application.objects.filter(job__recruiter=request.user)
         else:
             return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)

@@ -1,12 +1,7 @@
 import uuid
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager,
-)
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.utils import timezone
-from django.core.validators import FileExtensionValidator
-from apps.core.validators import validate_file_size
 
 
 class UserManager(BaseUserManager):
@@ -23,12 +18,12 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("is_verified", True)
 
         return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser):
-
     ROLE_CHOICES = (
         ("seeker", "Job Seeker"),
         ("recruiter", "Recruiter"),
@@ -39,8 +34,10 @@ class User(AbstractBaseUser):
     full_name = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)  # Email verified
     is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -63,10 +60,6 @@ class UserProfile(models.Model):
         upload_to="avatars/",
         blank=True,
         null=True,
-        validators=[
-            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png"]),
-            validate_file_size,
-        ],
     )
     skills = models.TextField(blank=True, null=True)
     experience_years = models.PositiveIntegerField(blank=True, null=True, default=0)
@@ -76,3 +69,27 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.email} Profile"
+
+
+class EmailVerification(models.Model):
+    """Track email verification tokens"""
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="email_verification"
+    )
+    token = models.CharField(max_length=255, unique=True)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name_plural = "Email Verifications"
+
+    def __str__(self):
+        return f"Email verification for {self.user.email}"
+
+    def mark_as_verified(self):
+        """Mark email as verified"""
+        self.is_verified = True
+        self.verified_at = timezone.now()
+        self.save()

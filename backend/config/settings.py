@@ -13,9 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 
 
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-euqq4aar=l8h8k-pl=$$r)ept0!snx33)&__!@l56kk%^&l6_o"
-)
+SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ["*"]
@@ -32,10 +30,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "drf_yasg",
     "rest_framework",
-    "djoser",
     "django_filters",
     "cloudinary_storage",
     "cloudinary",
+    "anymail",
     "apps.core",
     "apps.applications",
     "apps.authentication",
@@ -59,7 +57,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -76,7 +74,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        default=os.environ.get("DATABASE_URL", "sqlite:///db.sqlite3"),
+        default=os.environ.get("DATABASE_URL"),
         conn_max_age=600,
         conn_health_checks=True,
     )
@@ -103,11 +101,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -136,19 +131,12 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 10,
 }
 
-DJOSER = {
-    "SERIALIZERS": {
-        "user_create": "apps.authentication.serializers.UserCreateSerializer",
-        "user": "apps.authentication.serializers.UserSerializer",
-        "current_user": "apps.authentication.serializers.UserSerializer",
-    },
-}
-
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("JWT",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=2),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=25),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
 }
+
 SWAGGER_SETTINGS = {
     "SECURITY_DEFINITIONS": {
         "Bearer": {
@@ -164,6 +152,15 @@ SWAGGER_SETTINGS = {
 }
 
 
+ANYMAIL = {
+    "BREVO_API_KEY": os.environ.get("BREVO_API_KEY"),
+}
+
+DEFAULT_FROM_EMAIL = os.environ.get("BREVO_EMAIL")
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL")
+
+
 if DEBUG:
     INSTALLED_APPS += [
         "debug_toolbar",
@@ -176,10 +173,14 @@ if DEBUG:
     STORAGES["default"] = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     }
+
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
     STORAGES["default"] = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     }
+
+    EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
 
     cloudinary.config(
         cloud_name=os.environ.get("CLOUD_NAME"),
@@ -187,3 +188,5 @@ else:
         api_secret=os.environ.get("CLOUD_API_SECRET"),
         secure=True,
     )
+
+    EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"

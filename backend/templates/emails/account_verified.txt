@@ -1,0 +1,7 @@
+EMAIL VERIFIED - Jobly
+
+Hi {{ user_name }},
+
+Your email has been verified! Your account is now active.
+
+You can login at: {{ frontend_url }}/login

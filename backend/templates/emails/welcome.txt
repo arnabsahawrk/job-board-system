@@ -1,0 +1,7 @@
+WELCOME TO JOBLY
+
+Hi {{ user_name }},
+
+You're registered as a {{ user_role }}.
+
+Start exploring opportunities!
