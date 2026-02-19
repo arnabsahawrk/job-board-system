@@ -1,5 +1,7 @@
 from django.db import models
 from apps.jobs.models import Job
+from django.core.validators import FileExtensionValidator
+from apps.core.validators import validate_file_size
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -20,7 +22,13 @@ class Application(models.Model):
         User, on_delete=models.CASCADE, related_name="applications"
     )
 
-    resume = models.FileField(upload_to="applications/resumes/")
+    resume = models.FileField(
+        upload_to="applications/resumes/",
+        validators=[
+            FileExtensionValidator(allowed_extensions=["pdf"]),
+            validate_file_size,
+        ],
+    )
     cover_letter = models.TextField(blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")

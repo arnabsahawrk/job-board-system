@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.validators import FileExtensionValidator
+from apps.core.validators import validate_file_size
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -45,6 +47,10 @@ class Job(models.Model):
         blank=True,
         null=True,
         upload_to="company_logos/",
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png"]),
+            validate_file_size,
+        ],
     )
 
     application_deadline = models.DateTimeField(blank=True, null=True)
