@@ -2,6 +2,7 @@ from datetime import timedelta
 import os
 from pathlib import Path
 import sys
+import cloudinary
 import dj_database_url
 from dotenv import load_dotenv
 
@@ -33,6 +34,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "djoser",
     "django_filters",
+    "cloudinary_storage",
+    "cloudinary",
     "apps.applications",
     "apps.authentications",
     "apps.jobs",
@@ -41,6 +44,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -106,7 +110,20 @@ USE_I18N = True
 USE_TZ = True
 
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 REST_FRAMEWORK = {
     "COERCE_DECIMAL_TO_STRING": False,
@@ -154,3 +171,18 @@ if DEBUG:
     MIDDLEWARE = [
         "debug_toolbar.middleware.DebugToolbarMiddleware",
     ] + MIDDLEWARE
+
+    STORAGES["default"] = {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    }
+else:
+    STORAGES["default"] = {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    }
+
+    cloudinary.config(
+        cloud_name=os.environ.get("CLOUD_NAME"),
+        api_key=os.environ.get("CLOUD_API_KEY"),
+        api_secret=os.environ.get("CLOUD_API_SECRET"),
+        secure=True,
+    )

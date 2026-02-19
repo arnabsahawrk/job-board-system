@@ -1,5 +1,4 @@
 from django.db import models
-from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -36,26 +35,23 @@ class Job(models.Model):
 
     job_type = models.CharField(max_length=50, choices=JOB_TYPE_CHOICES)
 
-    salary_min = models.PositiveIntegerField(blank=True, null=True)
-    salary_max = models.PositiveIntegerField(blank=True, null=True)
+    salary = models.PositiveIntegerField(blank=True, null=True)
 
     experience_required = models.PositiveIntegerField(default=0)
     position_count = models.PositiveIntegerField(default=1)
 
     company_name = models.CharField(max_length=255)
+    company_logo = models.ImageField(
+        blank=True,
+        null=True,
+        upload_to="company_logos/",
+        default="company_logos/default.jpg",
+    )
 
-    is_active = models.BooleanField(default=True)
     application_deadline = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    def clean(self):
-        if self.salary_min and self.salary_max:
-            if self.salary_min > self.salary_max:
-                raise ValidationError(
-                    "salary_min must be less than or equal to salary_max"
-                )
 
     def __str__(self):
         return self.title
