@@ -80,3 +80,27 @@ class CanUpdateApplicationStatus(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.job.recruiter == request.user
+
+
+class IsReviewerOrReadOnly(BasePermission):
+    """
+    Custom permission:
+    - Allow any access to read (list, retrieve)
+    - Only allow reviewers to update/delete their own reviews
+    """
+
+    def has_permission(self, request, view):
+        # Allow read permissions to any request
+        if request.method in ["GET", "HEAD", "OPTIONS"]:
+            return True
+
+        # Write permissions only for authenticated users
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        # Allow read permissions to any request
+        if request.method in ["GET", "HEAD", "OPTIONS"]:
+            return True
+
+        # Write permissions only for the reviewer who created the review
+        return obj.reviewer == request.user

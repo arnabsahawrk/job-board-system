@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from apps.applications.models import Application
+from apps.applications.models import Application, ApplicationFeedback
 from apps.applications.serializers import (
     ApplicationListSerializer,
     ApplicationDetailSerializer,
@@ -13,6 +13,7 @@ from apps.applications.serializers import (
     ApplicationStatusUpdateSerializer,
 )
 from apps.authentication.serializers import UserSerializer
+from apps.applications.serializers import ApplicationFeedbackSerializer
 
 
 class ApplicationViewSet(viewsets.ModelViewSet):
@@ -21,7 +22,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     - Job seekers can create applications
     - Job seekers can view their own applications
     - Recruiters can view applications for their jobs
-    - Recruiters can update application status
+    - Recruiters can update application status with feedback
     """
 
     queryset = Application.objects.all()
@@ -45,7 +46,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             return ApplicationDetailSerializer
         elif self.action == "create":
             return ApplicationCreateSerializer
-        elif self.action in ["update", "partial_update"]:
+        elif self.action in ["update", "partial_update", "update_status"]:
             return ApplicationStatusUpdateSerializer
         else:
             return ApplicationListSerializer
@@ -57,12 +58,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         - Recruiters see applications for their jobs
         """
         user = self.request.user
-        user_role = self._user_role(user)
 
-        if user_role == "seeker":
+        if self._user_role(user) == "seeker":
             # Job seekers see their own applications
             return Application.objects.filter(applicant=user)
-        elif user_role == "recruiter":
+        elif self._user_role(user) == "recruiter":
             # Recruiters see applications for their jobs
             return Application.objects.filter(job__recruiter=user)
 
@@ -159,7 +159,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def update_status(self, request, pk=None):
-        """Update application status (recruiter only)"""
+        """
+        Update application status with feedback (recruiter only).
+        Requires 'status' and 'feedback_text' in request body.
+        """
         application = self.get_object()
 
         # Check if user is the recruiter
@@ -169,14 +172,59 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        serializer = ApplicationStatusUpdateSerializer(
-            application, data=request.data, partial=True
+        # Get status from request
+        status_value = request.data.get("status")
+        feedback_text = request.data.get("feedback_text")
+
+        # Validate status
+        valid_statuses = [choice[0] for choice in Application.STATUS_CHOICES]
+        if status_value not in valid_statuses:
+            return Response(
+                {
+                    "error": f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate feedback
+        if not feedback_text or len(feedback_text.strip()) == 0:
+            return Response(
+                {"error": "Feedback is required when updating application status"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(feedback_text) > 1000:
+            return Response(
+                {"error": "Feedback must be less than 1000 characters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Update application status
+        application.status = status_value
+        application.save()
+
+        # Create or update feedback
+        feedback, created = ApplicationFeedback.objects.update_or_create(
+            application=application,
+            defaults={
+                "recruiter": request.user,
+                "feedback_text": feedback_text,
+                "status_given": status_value,
+            },
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
 
         return Response(
-            ApplicationDetailSerializer(application).data, status=status.HTTP_200_OK
+            {
+                "message": "Application status updated with feedback",
+                "application": ApplicationDetailSerializer(application).data,
+                "feedback": {
+                    "id": feedback.id,
+                    "feedback_text": feedback.feedback_text,
+                    "status_given": feedback.status_given,
+                    "created_at": feedback.created_at,
+                },
+            },
+            status=status.HTTP_200_OK,
         )
 
     @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
@@ -200,11 +248,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def status_summary(self, request):
         """Get summary of application statuses"""
-        user_role = self._user_role(request.user)
-
-        if user_role == "seeker":
+        if self._user_role(request.user) == "seeker":
             applications = Application.objects.filter(applicant=request.user)
-        elif user_role == "recruiter":
+        elif self._user_role(request.user) == "recruiter":
             applications = Application.objects.filter(job__recruiter=request.user)
         else:
             return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
@@ -218,3 +264,28 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         }
 
         return Response(summary)
+
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def feedback(self, request, pk=None):
+        """Get feedback for an application"""
+        application = self.get_object()
+
+        # Check if user has access (applicant or recruiter of job)
+        if (
+            application.applicant != request.user
+            and application.job.recruiter != request.user
+        ):
+            return Response(
+                {"error": "You do not have permission to view this feedback"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Check if feedback exists
+        if not hasattr(application, "feedback"):
+            return Response(
+                {"error": "No feedback available for this application"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ApplicationFeedbackSerializer(application.feedback)
+        return Response(serializer.data)

@@ -33,3 +33,22 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review for {self.recruiter.email}"
+
+
+class ReviewHelpful(models.Model):
+    """Track helpful votes on reviews"""
+
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE, related_name="helpful_votes"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="helpful_reviews"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("review", "user")
+        verbose_name_plural = "Review Helpful Votes"
+
+    def __str__(self):
+        return f"{self.user.email} marked review {self.review.pk} as helpful"

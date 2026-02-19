@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
-from apps.applications.models import Application
+from apps.applications.models import Application, ApplicationFeedback
 from apps.core.validators import validate_file_size
 from apps.jobs.serializers import JobListSerializer
 from apps.jobs.models import Job
@@ -135,3 +135,83 @@ class ApplicationStatusUpdateSerializer(serializers.ModelSerializer):
                 f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
             )
         return value
+
+
+class ApplicationFeedbackSerializer(serializers.ModelSerializer):
+    """Serializer for application feedback"""
+
+    recruiter_name = serializers.CharField(source="recruiter.full_name", read_only=True)
+    recruiter_email = serializers.CharField(source="recruiter.email", read_only=True)
+    applicant_name = serializers.CharField(
+        source="application.applicant.full_name", read_only=True
+    )
+    applicant_email = serializers.CharField(
+        source="application.applicant.email", read_only=True
+    )
+    job_title = serializers.CharField(source="application.job.title", read_only=True)
+
+    class Meta:
+        model = ApplicationFeedback
+        fields = (
+            "id",
+            "application",
+            "recruiter_name",
+            "recruiter_email",
+            "applicant_name",
+            "applicant_email",
+            "job_title",
+            "feedback_text",
+            "status_given",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "created_at",
+            "updated_at",
+            "id",
+            "recruiter",
+            "status_given",
+        )
+
+
+class ApplicationFeedbackCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating application feedback when updating status"""
+
+    feedback_text = serializers.CharField(required=True, max_length=1000)
+
+    class Meta:
+        model = ApplicationFeedback
+        fields = ("feedback_text",)
+
+    def validate_feedback_text(self, value):
+        """Validate feedback text"""
+        if not value or len(value.strip()) == 0:
+            raise serializers.ValidationError("Feedback cannot be empty")
+        if len(value) > 1000:
+            raise serializers.ValidationError(
+                "Feedback must be less than 1000 characters"
+            )
+        return value
+
+
+class ApplicationFeedbackListSerializer(serializers.ModelSerializer):
+    """Serializer for listing application feedbacks"""
+
+    recruiter_name = serializers.CharField(source="recruiter.full_name", read_only=True)
+    applicant_name = serializers.CharField(
+        source="application.applicant.full_name", read_only=True
+    )
+    job_title = serializers.CharField(source="application.job.title", read_only=True)
+
+    class Meta:
+        model = ApplicationFeedback
+        fields = (
+            "id",
+            "recruiter_name",
+            "applicant_name",
+            "job_title",
+            "feedback_text",
+            "status_given",
+            "created_at",
+        )
+        read_only_fields = ("created_at", "id")

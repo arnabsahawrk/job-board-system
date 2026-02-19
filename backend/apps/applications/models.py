@@ -41,3 +41,24 @@ class Application(models.Model):
 
     def __str__(self):
         return f"{self.applicant.email} - {self.job.title}"
+
+
+class ApplicationFeedback(models.Model):
+    """Store feedback when recruiter updates application status"""
+
+    application = models.OneToOneField(
+        Application, on_delete=models.CASCADE, related_name="feedback"
+    )
+    recruiter = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="given_feedbacks"
+    )
+    feedback_text = models.TextField(max_length=1000)
+    status_given = models.CharField(max_length=20)  # Status when feedback was given
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Application Feedbacks"
+
+    def __str__(self):
+        return f"Feedback for {self.application.applicant.email} - {self.status_given}"
