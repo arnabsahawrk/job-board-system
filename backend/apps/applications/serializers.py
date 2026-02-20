@@ -54,7 +54,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             "applied_at",
             "updated_at",
         )
-        read_only_fields = ("applied_at", "updated_at", "id", "job", "resume")
+        read_only_fields = ("applied_at", "updated_at", "id", "job")
 
     def get_applicant_phone(self, obj):
         """Get applicant phone from profile"""
@@ -100,6 +100,14 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
 
         # Check file size
         validate_file_size(value)
+
+        # Check file extension
+        allowed_extensions = ["pdf", "doc", "docx"]
+        file_name = value.name.lower()
+        if not any(file_name.endswith(ext) for ext in allowed_extensions):
+            raise serializers.ValidationError(
+                "Resume must be a document file (PDF, DOC, DOCX)"
+            )
 
         return value
 

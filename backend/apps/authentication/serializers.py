@@ -1,13 +1,19 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from typing import TYPE_CHECKING, cast
 from apps.authentication.models import User, UserProfile, EmailVerification
+from apps.core.validators import validate_file_size
 
 if TYPE_CHECKING:
     from apps.authentication.models import UserManager
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile with calculated experience years."""
+
+    experience_years = serializers.SerializerMethodField()
+
     class Meta:
         model = UserProfile
         fields = (
@@ -15,8 +21,69 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "bio",
             "avatar",
             "skills",
+            "experience",
             "experience_years",
+            "resume",
         )
+        extra_kwargs = {
+            "avatar": {"required": False, "allow_null": True},
+            "resume": {"required": False, "allow_null": True},
+            "experience": {"required": False, "allow_null": True},
+        }
+
+    def get_experience_years(self, obj):
+        """
+        Dynamically calculate years of experience from experience date.
+        Returns float with 1 decimal place.
+        """
+        return obj.get_experience_years()
+
+    def validate_experience(self, value):
+        """
+        Validate that experience date is not in the future.
+        User cannot set experience date ahead of today.
+        """
+        if value and value > timezone.now().date():
+            raise serializers.ValidationError(
+                "Experience start date cannot be in the future"
+            )
+        return value
+
+    def validate_avatar(self, value):
+        """Validate avatar file if provided"""
+        if value is None:
+            return value
+
+        # Check file size
+        validate_file_size(value)
+
+        # Check file extension
+        allowed_extensions = ["jpg", "jpeg", "png"]
+        file_name = value.name.lower()
+        if not any(file_name.endswith(ext) for ext in allowed_extensions):
+            raise serializers.ValidationError(
+                "Avatar must be an image file (JPG, PNG, JPEG)"
+            )
+
+        return value
+
+    def validate_resume(self, value):
+        """Validate resume file if provided"""
+        if value is None:
+            return value
+
+        # Check file size
+        validate_file_size(value)
+
+        # Check file extension
+        allowed_extensions = ["pdf", "doc", "docx"]
+        file_name = value.name.lower()
+        if not any(file_name.endswith(ext) for ext in allowed_extensions):
+            raise serializers.ValidationError(
+                "Resume must be a document file (PDF, DOC, DOCX)"
+            )
+
+        return value
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
@@ -163,6 +230,7 @@ class UpdateProfileSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         """Update user and profile"""
+
         # Update user fields
         if "full_name" in validated_data:
             instance.full_name = validated_data["full_name"]
@@ -172,8 +240,54 @@ class UpdateProfileSerializer(serializers.Serializer):
         if "profile" in validated_data:
             profile_data = validated_data["profile"]
             profile = instance.profile
+
+            # Handle resume file
+            if "resume" in profile_data:
+                resume_value = profile_data["resume"]
+                if resume_value is None:
+                    # Delete old resume file from Cloudinary
+                    if profile.resume:
+                        profile.resume.delete()
+                    profile.resume = None
+                else:
+                    # Delete old resume before adding new one
+                    if profile.resume:
+                        profile.resume.delete()
+                    profile.resume = resume_value
+
+            # Handle avatar file
+            if "avatar" in profile_data:
+                avatar_value = profile_data["avatar"]
+                if avatar_value is None:
+                    # Delete old avatar file from Cloudinary
+                    if profile.avatar:
+                        profile.avatar.delete()
+                    profile.avatar = None
+                else:
+                    # Delete old avatar before adding new one
+                    if profile.avatar:
+                        profile.avatar.delete()
+                    profile.avatar = avatar_value
+
+            # Validate experience date before updating
+            if "experience" in profile_data:
+                experience_value = profile_data["experience"]
+                if experience_value and experience_value > timezone.now().date():
+                    raise serializers.ValidationError(
+                        {
+                            "profile": {
+                                "experience": "Experience start date cannot be in the future"
+                            }
+                        }
+                    )
+
+            # Update all other profile fields
             for attr, value in profile_data.items():
-                setattr(profile, attr, value)
+                if attr not in ["resume", "avatar"]:  # Skip files, already handled
+                    setattr(profile, attr, value)
+
+            # Call clean to trigger model validation
+            profile.clean()
             profile.save()
 
         return instance

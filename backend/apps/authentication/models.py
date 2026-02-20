@@ -2,6 +2,11 @@ import uuid
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from cloudinary.models import CloudinaryField
+
+# from django.core.validators import FileExtensionValidator
+# from apps.core.validators import validate_file_size
 
 
 class UserManager(BaseUserManager):
@@ -56,19 +61,72 @@ class UserProfile(models.Model):
 
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-    avatar = models.ImageField(
-        upload_to="avatars/",
+
+    avatar = CloudinaryField(
+        "image",
         blank=True,
         null=True,
+        folder="profiles/avatars/",
+        help_text="Profile avatar image (JPG, PNG)",
     )
+
+    # avatar = models.ImageField(
+    #     upload_to="avatars/",
+    #     blank=True,
+    #     null=True,
+    # )
+
     skills = models.TextField(blank=True, null=True)
-    experience_years = models.PositiveIntegerField(blank=True, null=True, default=0)
+
+    experience = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Date when you started your professional experience",
+    )
+
+    resume = CloudinaryField(
+        "document",
+        blank=True,
+        null=True,
+        folder="profiles/resumes/",
+        help_text="Upload your resume (PDF, DOC, DOCX)",
+    )
+
+    # resume = models.FileField(
+    #     upload_to="applications/resumes/",
+    #     validators=[
+    #         FileExtensionValidator(allowed_extensions=["pdf"]),
+    #         validate_file_size,
+    #     ],
+    # )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.email} Profile"
+
+    def get_experience_years(self):
+        """
+        Calculate years of experience from start date.
+        Returns float rounded to 1 decimal place.
+        Example: 5.3 years
+        """
+        if not self.experience:
+            return 0
+
+        today = timezone.now().date()
+        days_difference = (today - self.experience).days
+        years = days_difference / 365.25
+
+        return round(years, 1)
+
+    def clean(self):
+        """Validate that experience date is not in the future"""
+        if self.experience and self.experience > timezone.now().date():
+            raise ValidationError(
+                {"experience": "Experience start date cannot be in the future"}
+            )
 
 
 class EmailVerification(models.Model):

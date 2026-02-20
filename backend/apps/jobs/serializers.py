@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.core.validators import validate_file_size
 from apps.jobs.models import Job
 
 
@@ -6,7 +7,6 @@ class JobListSerializer(serializers.ModelSerializer):
     """Serializer for job list view (read-only)"""
 
     recruiter_name = serializers.CharField(source="recruiter.full_name", read_only=True)
-    company_logo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Job
@@ -14,24 +14,16 @@ class JobListSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "company_name",
-            "company_logo_url",
+            "company_logo",
             "location",
             "job_type",
             "category",
             "salary",
             "recruiter_name",
             "created_at",
+            "updated_at",
         )
-
-    def get_company_logo_url(self, obj):
-        """Return company logo URL"""
-        if obj.company_logo:
-            return (
-                obj.company_logo.url
-                if hasattr(obj.company_logo, "url")
-                else str(obj.company_logo)
-            )
-        return None
+        read_only_fields = ("company_logo", "created_at", "updated_at")
 
 
 class JobDetailSerializer(serializers.ModelSerializer):
@@ -39,7 +31,6 @@ class JobDetailSerializer(serializers.ModelSerializer):
 
     recruiter_name = serializers.CharField(source="recruiter.full_name", read_only=True)
     recruiter_email = serializers.CharField(source="recruiter.email", read_only=True)
-    company_logo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Job
@@ -55,24 +46,14 @@ class JobDetailSerializer(serializers.ModelSerializer):
             "experience_required",
             "position_count",
             "company_name",
-            "company_logo_url",
+            "company_logo",
             "application_deadline",
             "recruiter_name",
             "recruiter_email",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("created_at", "updated_at")
-
-    def get_company_logo_url(self, obj):
-        """Return company logo URL"""
-        if obj.company_logo:
-            return (
-                obj.company_logo.url
-                if hasattr(obj.company_logo, "url")
-                else str(obj.company_logo)
-            )
-        return None
+        read_only_fields = ("company_logo", "created_at", "updated_at")
 
 
 class JobCreateUpdateSerializer(serializers.ModelSerializer):
@@ -111,4 +92,22 @@ class JobCreateUpdateSerializer(serializers.ModelSerializer):
         """Validate position count is positive"""
         if value <= 0:
             raise serializers.ValidationError("Position count must be at least 1")
+        return value
+
+    def validate_company_logo(self, value):
+        """Validate company logo file if provided"""
+        if value is None:
+            return value
+
+        # Check file size
+        validate_file_size(value)
+
+        # Check file extension
+        allowed_extensions = ["jpg", "jpeg", "png"]
+        file_name = value.name.lower()
+        if not any(file_name.endswith(ext) for ext in allowed_extensions):
+            raise serializers.ValidationError(
+                "Company logo must be an image file (JPG, PNG, JPEG)"
+            )
+
         return value

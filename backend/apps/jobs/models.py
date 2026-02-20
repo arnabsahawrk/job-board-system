@@ -1,7 +1,9 @@
 from django.db import models
-from django.core.validators import FileExtensionValidator
-from apps.core.validators import validate_file_size
+from cloudinary.models import CloudinaryField
 from django.contrib.auth import get_user_model
+
+# from django.core.validators import FileExtensionValidator
+# from apps.core.validators import validate_file_size
 
 User = get_user_model()
 
@@ -43,15 +45,24 @@ class Job(models.Model):
     position_count = models.PositiveIntegerField(default=1)
 
     company_name = models.CharField(max_length=255)
-    company_logo = models.ImageField(
+
+    company_logo = CloudinaryField(
+        "image",
         blank=True,
         null=True,
-        upload_to="company_logos/",
-        validators=[
-            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png"]),
-            validate_file_size,
-        ],
+        folder="jobs/company_logos/",
+        help_text="Company logo image (JPG, PNG, JPEG)",
     )
+
+    # company_logo = models.ImageField(
+    #     blank=True,
+    #     null=True,
+    #     upload_to="company_logos/",
+    #     validators=[
+    #         FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png"]),
+    #         validate_file_size,
+    #     ],
+    # )
 
     application_deadline = models.DateTimeField(blank=True, null=True)
 
