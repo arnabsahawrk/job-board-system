@@ -1,0 +1,19 @@
+CONGRATULATIONS! - JOBLY
+
+Hi {{ user_name }},
+
+Great news! Your application for {{ job_title }} at {{ company_name }} has been ACCEPTED!
+
+WHAT HAPPENS NEXT?
+1. {{ recruiter_name }} will contact you shortly with next steps
+2. Check your email for further instructions
+3. Be ready to discuss the position and your availability
+
+RECRUITER CONTACT:
+Name: {{ recruiter_name }}
+Email: {{ recruiter_email }}
+
+We're excited to see where this opportunity takes you. Best of luck in the next steps!
+
+---
+© 2026 Jobly. All rights reserved.

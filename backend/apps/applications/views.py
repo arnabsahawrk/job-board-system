@@ -24,13 +24,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     - Job seekers can view their own applications
     - Recruiters can view applications for their jobs
     - Recruiters can update application status with feedback
+    - Email notifications sent on application and status updates
     """
 
     queryset = Application.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    # Filtering options
     filterset_fields = ["job", "status"]
     search_fields = ["applicant__full_name", "applicant__email", "job__title"]
     ordering_fields = ["applied_at", "status"]
@@ -48,25 +48,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             return ApplicationListSerializer
 
     def get_queryset(self):
-        """
-        Filter applications based on user role:
-        - Job seekers see only their applications
-        - Recruiters see applications for their jobs
-        """
+        """Filter applications based on user role"""
         user = self.request.user
 
         if Services.user_role(user) == "seeker":
-            # Job seekers see their own applications
             return Application.objects.filter(applicant=user)
         elif Services.user_role(user) == "recruiter":
-            # Recruiters see applications for their jobs
             return Application.objects.filter(job__recruiter=user)
 
         return Application.objects.none()
 
     def create(self, request, *args, **kwargs):
-        """Create application (job seeker only)"""
-        # Check if user is a job seeker
+        """Create application (job seeker only) and send notifications"""
         if Services.user_role(request.user) != "seeker":
             return Response(
                 {"error": "Only job seekers can apply for jobs"},
@@ -78,7 +71,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
         application = serializer.save()
 
-        # Return detail serializer
+        # Send email notifications
+        # 1. Email to job seeker confirming application
+        Services.send_application_received_email(application)
+
+        # 2. Email to recruiter notifying of new application
+        Services.send_new_application_notification_email(application)
+
         return Response(
             ApplicationDetailSerializer(application).data,
             status=status.HTTP_201_CREATED,
@@ -88,14 +87,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         """Update application (recruiter only)"""
         application = self.get_object()
 
-        # Check if user is the recruiter who posted the job
         if application.job.recruiter != request.user:
             return Response(
                 {"error": "You can only update applications for your jobs"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Only allow status updates
         serializer = self.get_serializer(application, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -108,7 +105,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         """Delete application (applicant only)"""
         application = self.get_object()
 
-        # Check if user is the applicant
         if application.applicant != request.user:
             return Response(
                 {"error": "You can only delete your own applications"},
@@ -145,7 +141,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
         applications = Application.objects.filter(job__recruiter=request.user)
 
-        # Optional: filter by job if job_id provided in query params
         job_id = request.query_params.get("job_id")
         if job_id:
             applications = applications.filter(job_id=job_id)
@@ -156,23 +151,20 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def update_status(self, request, pk=None):
         """
-        Update application status with feedback (recruiter only).
+        Update application status with feedback and send email notification.
         Requires 'status' and 'feedback_text' in request body.
         """
         application = self.get_object()
 
-        # Check if user is the recruiter
         if application.job.recruiter != request.user:
             return Response(
                 {"error": "You can only update applications for your jobs"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Get status from request
         status_value = request.data.get("status")
         feedback_text = request.data.get("feedback_text")
 
-        # Validate status
         valid_statuses = [choice[0] for choice in Application.STATUS_CHOICES]
         if status_value not in valid_statuses:
             return Response(
@@ -182,7 +174,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validate feedback
         if not feedback_text or len(feedback_text.strip()) == 0:
             return Response(
                 {"error": "Feedback is required when updating application status"},
@@ -209,6 +200,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             },
         )
 
+        # Send appropriate email notification based on status
+        if status_value == "accepted":
+            Services.send_application_accepted_email(application)
+        elif status_value == "rejected":
+            Services.send_application_rejected_email(application, feedback_text)
+        else:
+            # For pending and reviewed statuses
+            Services.send_application_status_update_email(application, feedback_text)
+
         return Response(
             {
                 "message": "Application status updated with feedback",
@@ -228,7 +228,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         """Get applicant's full profile"""
         application = self.get_object()
 
-        # Check if user is recruiter of this job or the applicant
         if (
             application.job.recruiter != request.user
             and application.applicant != request.user
@@ -268,7 +267,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         """Get feedback for an application"""
         application = self.get_object()
 
-        # Check if user has access (applicant or recruiter of job)
         if (
             application.applicant != request.user
             and application.job.recruiter != request.user
@@ -278,7 +276,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Check if feedback exists
         if not hasattr(application, "feedback"):
             return Response(
                 {"error": "No feedback available for this application"},

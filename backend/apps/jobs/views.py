@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from drf_yasg import openapi
 
 from apps.jobs.models import Job
 from apps.jobs.serializers import (
@@ -12,6 +13,7 @@ from apps.jobs.serializers import (
     JobCreateUpdateSerializer,
 )
 from apps.core.permissions import IsRecruiterOrReadOnly
+from apps.core.swagger_docs import SwaggerDocumentation
 
 
 class JobViewSet(viewsets.ModelViewSet):
@@ -114,6 +116,14 @@ class JobViewSet(viewsets.ModelViewSet):
             {"message": "Job deleted successfully"}, status=status.HTTP_204_NO_CONTENT
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+        ),
+        description="Get current recruiter's jobs",
+    )
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def my_jobs(self, request):
         """Get all jobs posted by current recruiter"""
@@ -127,6 +137,14 @@ class JobViewSet(viewsets.ModelViewSet):
         serializer = JobListSerializer(jobs, many=True)
         return Response(serializer.data)
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+        ),
+        description="Get similar jobs",
+    )
     @action(detail=True, methods=["get"], permission_classes=[AllowAny])
     def similar_jobs(self, request, pk=None):
         """Get similar jobs based on category and location"""

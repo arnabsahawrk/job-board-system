@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Avg, Count
+from drf_yasg import openapi
 
 from apps.reviews.models import Review, ReviewHelpful
 from apps.reviews.serializers import (
@@ -14,6 +15,7 @@ from apps.reviews.serializers import (
     ReviewStatisticsSerializer,
 )
 from apps.core.permissions import IsReviewerOrReadOnly, IsJobSeeker
+from apps.core.swagger_docs import SwaggerDocumentation
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -120,6 +122,30 @@ class ReviewViewSet(viewsets.ModelViewSet):
             status=status.HTTP_204_NO_CONTENT,
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                "recruiter_id",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description="Recruiter ID",
+            ),
+            openapi.Parameter(
+                "job_id",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description="Optional job ID filter",
+            ),
+        ],
+        description="Get recruiter reviews",
+    )
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def recruiter_reviews(self, request):
         """Get all reviews for a specific recruiter"""
@@ -141,6 +167,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer = ReviewListSerializer(reviews, many=True)
         return Response(serializer.data)
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+        ),
+        description="Get my reviews",
+    )
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def my_reviews(self, request):
         """Get all reviews written by current user"""
@@ -154,6 +188,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer = ReviewListSerializer(reviews, many=True)
         return Response(serializer.data)
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+        ),
+        description="Get my received reviews",
+    )
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def my_received_reviews(self, request):
         """Get all reviews received by current recruiter"""
@@ -167,6 +209,31 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer = ReviewListSerializer(reviews, many=True)
         return Response(serializer.data)
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "total_reviews": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "average_rating": openapi.Schema(type=openapi.TYPE_NUMBER),
+                "five_star": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "four_star": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "three_star": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "two_star": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "one_star": openapi.Schema(type=openapi.TYPE_INTEGER),
+            },
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                "recruiter_id",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description="Recruiter ID",
+            )
+        ],
+        description="Get recruiter statistics",
+    )
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def recruiter_statistics(self, request):
         """Get review statistics for a recruiter"""
@@ -209,6 +276,23 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer = ReviewStatisticsSerializer(statistics)
         return Response(serializer.data)
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                "job_id",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description="Job ID",
+            )
+        ],
+        description="Get job reviews",
+    )
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def job_reviews(self, request):
         """Get all reviews for a specific job"""
@@ -224,6 +308,23 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer = ReviewListSerializer(reviews, many=True)
         return Response(serializer.data)
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                "limit",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description="Number of recruiters to return",
+            )
+        ],
+        description="Get top recruiters by average rating",
+    )
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def top_recruiters(self, request):
         """Get top recruiters by average rating"""
@@ -238,6 +339,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
         return Response(recruiters)
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING),
+                "helpful_count": openapi.Schema(type=openapi.TYPE_INTEGER),
+            },
+        ),
+        description="Toggle helpful vote",
+    )
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def helpful(self, request, pk=None):
         """
@@ -272,6 +384,18 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
+    @SwaggerDocumentation.custom_action(
+        method="get",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "review_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "helpful_count": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "is_helpful_by_current_user": openapi.Schema(type=openapi.TYPE_BOOLEAN),
+            },
+        ),
+        description="Get helpful vote details",
+    )
     @action(detail=True, methods=["get"], permission_classes=[AllowAny])
     def helpful_votes(self, request, pk=None):
         """Get helpful votes count and votes details for a review"""

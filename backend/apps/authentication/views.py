@@ -1,5 +1,5 @@
 from django.conf import settings
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -8,7 +8,9 @@ from django.utils.encoding import force_str, force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from typing import cast
+from drf_yasg import openapi
 from apps.core.services import Services
+from apps.core.swagger_docs import SwaggerDocumentation
 
 from apps.authentication.models import User, EmailVerification
 from apps.authentication.serializers import (
@@ -22,15 +24,33 @@ from apps.authentication.serializers import (
 )
 
 
-class AuthViewSet(viewsets.ViewSet):
+class AuthViewSet(viewsets.GenericViewSet):
     """Authentication API endpoints"""
 
     permission_classes = [AllowAny]
+    serializer_class = RegisterSerializer
 
+    def get_serializer_class(self):
+        action_serializers: dict[str, type[serializers.Serializer]] = {
+            "register": RegisterSerializer,
+            "verify_email": EmailVerificationSerializer,
+            "resend_verification": ResendVerificationEmailSerializer,
+            "login": LoginSerializer,
+            "update_profile": UpdateProfileSerializer,
+            "change_password": ChangePasswordSerializer,
+            "profile": UserDetailSerializer,
+        }
+        return action_serializers.get(self.action, self.serializer_class)
+
+    @SwaggerDocumentation.create_action(
+        request_serializer=RegisterSerializer,
+        response_serializer=UserDetailSerializer,
+        description="Register new user account",
+    )
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def register(self, request):
         """Register new user account. Sends verification email."""
-        serializer = RegisterSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = cast(User, serializer.save())
 
@@ -55,6 +75,15 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        request_body=EmailVerificationSerializer,
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+        ),
+        description="Verify email",
+    )
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def verify_email(self, request):
         """Verify email address using token from verification email."""
@@ -89,6 +118,15 @@ class AuthViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        request_body=ResendVerificationEmailSerializer,
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+        ),
+        description="Resend verification email",
+    )
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def resend_verification(self, request):
         """Resend verification email to unverified user."""
@@ -117,6 +155,19 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        request_body=LoginSerializer,
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "access": openapi.Schema(type=openapi.TYPE_STRING),
+                "refresh": openapi.Schema(type=openapi.TYPE_STRING),
+                "user": openapi.Schema(type=openapi.TYPE_OBJECT),
+            },
+        ),
+        description="Login user",
+    )
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def login(self, request):
         """Authenticate user and return JWT tokens."""
@@ -142,6 +193,14 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+        ),
+        description="Logout user",
+    )
     @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated])
     def logout(self, request):
         """Logout user (client deletes tokens)."""
@@ -152,6 +211,23 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "email": openapi.Schema(
+                    type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL
+                ),
+            },
+            required=["email"],
+        ),
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+        ),
+        description="Request password reset",
+    )
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def request_password_reset(self, request):
         """Request password reset email (Step 1/2)."""
@@ -193,6 +269,31 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "uid": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Base64 encoded user ID"
+                ),
+                "token": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Password reset token"
+                ),
+                "new_password": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_PASSWORD,
+                    description="New password (min 8 chars)",
+                ),
+            },
+            required=["uid", "token", "new_password"],
+        ),
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+        ),
+        description="Confirm password reset",
+    )
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def confirm_password_reset(self, request):
         """Confirm password reset with token (Step 2/2)."""
@@ -239,12 +340,22 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @SwaggerDocumentation.retrieve_action(
+        serializer_class=UserDetailSerializer,
+        description="Get current profile",
+    )
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def profile(self, request):
         """Get current user profile."""
         serializer = UserDetailSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SwaggerDocumentation.update_action(
+        request_serializer=UpdateProfileSerializer,
+        response_serializer=UserDetailSerializer,
+        description="Update current profile",
+        partial=True,
+    )
     @action(detail=False, methods=["patch"], permission_classes=[IsAuthenticated])
     def update_profile(self, request):
         """Update user profile."""
@@ -256,6 +367,15 @@ class AuthViewSet(viewsets.ViewSet):
 
         return Response(UserDetailSerializer(user).data, status=status.HTTP_200_OK)
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        request_body=ChangePasswordSerializer,
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"message": openapi.Schema(type=openapi.TYPE_STRING)},
+        ),
+        description="Change password",
+    )
     @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated])
     def change_password(self, request):
         """Change password for authenticated user."""
@@ -281,6 +401,27 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @SwaggerDocumentation.custom_action(
+        method="post",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "refresh": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Refresh token"
+                ),
+            },
+            required=["refresh"],
+        ),
+        response_schema=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "access": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="New access token"
+                )
+            },
+        ),
+        description="Refresh access token",
+    )
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def refresh_token(self, request):
         """Refresh access token using refresh token."""

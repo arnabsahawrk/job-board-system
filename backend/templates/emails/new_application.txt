@@ -1,0 +1,18 @@
+NEW APPLICATION - JOBLY
+
+Hi {{ recruiter_name }},
+
+You have received a new application for {{ job_title }}.
+
+APPLICANT DETAILS:
+Name: {{ applicant_name }}
+Email: {{ applicant_email }}
+Applied On: {{ application_date|date:"F d, Y H:i" }}
+
+LOG IN TO REVIEW:
+https://jobly.com/dashboard/applications
+
+Log in to your Jobly dashboard to review the application, view the applicant's resume, and provide feedback.
+
+---
+© 2026 Jobly. All rights reserved.

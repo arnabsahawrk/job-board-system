@@ -1,0 +1,17 @@
+APPLICATION RECEIVED - JOBLY
+
+Hi {{ user_name }},
+
+Great! Your application for {{ job_title }} at {{ company_name }} has been successfully submitted.
+
+WHAT HAPPENS NEXT?
+- The employer will review your application
+- You'll receive an email when they take action
+- Keep checking your email for updates
+
+Application Date: {{ application_date|date:"F d, Y H:i" }}
+
+We wish you the best with your application! In the meantime, continue exploring other opportunities on Jobly.
+
+---
+© 2026 Jobly. All rights reserved.

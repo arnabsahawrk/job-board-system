@@ -209,3 +209,203 @@ class Services:
         except Exception as e:
             print(f"Bulk email send error: {str(e)}")
             return False
+
+    @staticmethod
+    def send_application_received_email(application):
+        """
+        Send email to job seeker confirming application was received.
+
+        Args:
+            application: Application instance
+        """
+        user = application.applicant
+        job = application.job
+
+        context = {
+            "user_name": user.full_name,
+            "job_title": job.title,
+            "company_name": job.company_name,
+            "application_date": application.applied_at,
+        }
+
+        try:
+            html_message = render_to_string("emails/application_received.html", context)
+            plain_message = render_to_string("emails/application_received.txt", context)
+
+            send_mail(
+                subject=f"Application Received - {job.title} at {job.company_name}",
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return True
+
+        except Exception as e:
+            print(f"Error sending application received email: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_new_application_notification(application):
+        """
+        Send email to recruiter notifying them of a new application.
+
+        Args:
+            application: Application instance
+        """
+        recruiter = application.job.recruiter
+        applicant = application.applicant
+        job = application.job
+
+        context = {
+            "recruiter_name": recruiter.full_name,
+            "applicant_name": applicant.full_name,
+            "applicant_email": applicant.email,
+            "job_title": job.title,
+            "application_date": application.applied_at,
+        }
+
+        try:
+            html_message = render_to_string("emails/new_application.html", context)
+            plain_message = render_to_string("emails/new_application.txt", context)
+
+            send_mail(
+                subject=f"New Application for {job.title}",
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[recruiter.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return True
+
+        except Exception as e:
+            print(f"Error sending new application notification: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_application_status_update_email(application, feedback_text):
+        """
+        Send email to job seeker when application status is updated.
+
+        Args:
+            application: Application instance
+            feedback_text: Feedback from recruiter
+        """
+        user = application.applicant
+        job = application.job
+        recruiter = job.recruiter
+
+        status_display = {
+            "pending": "Pending",
+            "reviewed": "Reviewed",
+            "accepted": "Accepted",
+            "rejected": "Rejected",
+        }.get(application.status, application.status)
+
+        context = {
+            "user_name": user.full_name,
+            "job_title": job.title,
+            "company_name": job.company_name,
+            "recruiter_name": recruiter.full_name,
+            "status": status_display,
+            "feedback": feedback_text,
+        }
+
+        try:
+            html_message = render_to_string(
+                "emails/application_status_update.html", context
+            )
+            plain_message = render_to_string(
+                "emails/application_status_update.txt", context
+            )
+
+            send_mail(
+                subject=f"Application Status Update - {job.title}",
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return True
+
+        except Exception as e:
+            print(f"Error sending application status update email: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_application_accepted_email(application):
+        """
+        Send celebratory email when application is accepted.
+
+        Args:
+            application: Application instance
+        """
+        user = application.applicant
+        job = application.job
+        recruiter = job.recruiter
+
+        context = {
+            "user_name": user.full_name,
+            "job_title": job.title,
+            "company_name": job.company_name,
+            "recruiter_name": recruiter.full_name,
+            "recruiter_email": recruiter.email,
+        }
+
+        try:
+            html_message = render_to_string("emails/application_accepted.html", context)
+            plain_message = render_to_string("emails/application_accepted.txt", context)
+
+            send_mail(
+                subject=f"Congratulations! Your Application for {job.title} was Accepted!",
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return True
+
+        except Exception as e:
+            print(f"Error sending application accepted email: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_application_rejected_email(application, feedback_text):
+        """
+        Send email when application is rejected.
+
+        Args:
+            application: Application instance
+            feedback_text: Feedback from recruiter
+        """
+        user = application.applicant
+        job = application.job
+
+        context = {
+            "user_name": user.full_name,
+            "job_title": job.title,
+            "company_name": job.company_name,
+            "feedback": feedback_text,
+        }
+
+        try:
+            html_message = render_to_string("emails/application_rejected.html", context)
+            plain_message = render_to_string("emails/application_rejected.txt", context)
+
+            send_mail(
+                subject=f"Application Update - {job.title} at {job.company_name}",
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return True
+
+        except Exception as e:
+            print(f"Error sending application rejected email: {str(e)}")
+            return False

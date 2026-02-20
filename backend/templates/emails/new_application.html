@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Application</title>
+  </head>
+  <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto'; background-color: #f5f5f5; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Jobly</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">New Application Alert</p>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 40px 30px;">
+        <h2 style="color: #333; margin: 0 0 20px 0; font-size: 24px;">📋 New Application Received</h2>
+
+        <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi {{ recruiter_name }},</p>
+
+        <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+          You have received a new application for <strong>{{ job_title }}</strong>.
+        </p>
+
+        <!-- Applicant Info Card -->
+        <div style="background-color: #f9f9f9; border: 1px solid #eee; border-radius: 6px; padding: 20px; margin: 30px 0;">
+          <p style="color: #333; margin: 0 0 10px 0;">
+            <strong>Applicant Details</strong>
+          </p>
+          <p style="color: #666; margin: 5px 0;">
+            <strong>Name:</strong> {{ applicant_name }}
+          </p>
+          <p style="color: #666; margin: 5px 0;">
+            <strong>Email:</strong> {{ applicant_email }}
+          </p>
+          <p style="color: #666; margin: 5px 0;">
+            <strong>Applied On:</strong> {{ application_date|date:'F d, Y H:i' }}
+          </p>
+        </div>
+
+        <!-- CTA -->
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="https://jobly.com/dashboard/applications" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">View Application</a>
+        </div>
+
+        <p style="color: #666; font-size: 14px; line-height: 1.6;">Log in to your Jobly dashboard to review the application, view the applicant's resume, and provide feedback.</p>
+      </div>
+
+      <!-- Footer -->
+      <div style="background-color: #f9f9f9; border-top: 1px solid #eee; padding: 20px; text-align: center; color: #999; font-size: 12px;">
+        <p style="margin: 0;">© 2026 Jobly. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>

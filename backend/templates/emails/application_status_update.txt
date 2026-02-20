@@ -1,0 +1,15 @@
+APPLICATION STATUS UPDATE - JOBLY
+
+Hi {{ user_name }},
+
+Your application for {{ job_title }} at {{ company_name }} has been updated.
+
+CURRENT STATUS: {{ status }}
+
+FEEDBACK FROM {{ recruiter_name }}:
+{{ feedback }}
+
+Thank you for your interest in this position. If you have any questions, feel free to reach out to the recruiter directly.
+
+---
+© 2026 Jobly. All rights reserved.

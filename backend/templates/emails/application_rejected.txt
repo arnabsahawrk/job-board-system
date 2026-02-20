@@ -1,0 +1,16 @@
+APPLICATION UPDATE - JOBLY
+
+Hi {{ user_name }},
+
+Thank you for applying to {{ job_title }} at {{ company_name }}. We have carefully reviewed your application.
+
+FEEDBACK:
+{{ feedback }}
+
+KEEP LOOKING!
+Don't be discouraged! There are many great opportunities on Jobly. Continue exploring and applying to positions that match your skills and interests.
+
+We appreciate you taking the time to apply and wish you success in your job search!
+
+---
+© 2026 Jobly. All rights reserved.
