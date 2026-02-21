@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate",
-  "installCommand": "pip install -r requirements.txt",
+  "buildCommand": "pip install -r backend/requirements.txt --break-system-packages && cd backend && python manage.py collectstatic --noinput && python manage.py migrate",
+  "installCommand": "pip install -r backend/requirements.txt --break-system-packages",
   "env": {
     "DJANGO_SETTINGS_MODULE": "config.settings",
     "PYTHONUNBUFFERED": "1",
@@ -34,17 +34,5 @@
       "src": "/(.*)",
       "dest": "config/wsgi.py"
     }
-  ],
-  "env_override": {
-    "DATABASE_URL": "@database_url",
-    "SECRET_KEY": "@secret_key",
-    "CLOUD_NAME": "@cloud_name",
-    "CLOUD_API_KEY": "@cloud_api_key",
-    "CLOUD_API_SECRET": "@cloud_api_secret",
-    "BREVO_API_KEY": "@brevo_api_key",
-    "BREVO_EMAIL": "@brevo_email",
-    "FRONTEND_URL": "@frontend_url",
-    "DEBUG": "@debug",
-    "VERCEL": "1"
-  }
+  ]
 }
