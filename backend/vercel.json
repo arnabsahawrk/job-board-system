@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate",
+  "installCommand": "pip install -r requirements.txt",
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "config.settings",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "functions": {
+    "config/wsgi.py": {
+      "runtime": "python3.11",
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/swagger/(.*)",
+      "dest": "config/wsgi.py"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "config/wsgi.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "config/wsgi.py"
+    }
+  ],
+  "env_override": {
+    "DATABASE_URL": "@database_url",
+    "SECRET_KEY": "@secret_key",
+    "CLOUD_NAME": "@cloud_name",
+    "CLOUD_API_KEY": "@cloud_api_key",
+    "CLOUD_API_SECRET": "@cloud_api_secret",
+    "BREVO_API_KEY": "@brevo_api_key",
+    "BREVO_EMAIL": "@brevo_email",
+    "FRONTEND_URL": "@frontend_url",
+    "DEBUG": "@debug",
+    "VERCEL": "1"
+  }
+}
