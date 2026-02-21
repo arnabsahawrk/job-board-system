@@ -93,7 +93,7 @@ class UserProfile(models.Model):
     )
 
     # resume = models.FileField(
-    #     upload_to="applications/resumes/",
+    #     upload_to="profiles/resumes/",
     #     validators=[
     #         FileExtensionValidator(allowed_extensions=["pdf"]),
     #         validate_file_size,

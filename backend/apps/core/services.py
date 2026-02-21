@@ -61,6 +61,7 @@ class Services:
                 html_message=html_message,
                 fail_silently=False,
             )
+            print(f"Verification email sent with token: {token}")
             return True
 
         except Exception as e:
