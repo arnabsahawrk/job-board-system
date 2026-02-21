@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Jobly API</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .main {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+      }
+      
+      .container {
+        max-width: 700px;
+      }
+      
+      h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+      }
+      
+      p {
+        color: #cbd5e1;
+        font-size: 1.1rem;
+        margin-bottom: 30px;
+        line-height: 1.6;
+      }
+      
+      .status {
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: #16a34a;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        margin-bottom: 25px;
+      }
+      
+      .btn {
+        display: inline-block;
+        padding: 14px 28px;
+        background-color: #3b82f6;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: 0.3s ease;
+      }
+      
+      .btn:hover {
+        background-color: #2563eb;
+        transform: translateY(-2px);
+      }
+      
+      footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 2.2rem;
+        }
+      
+        p {
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="main">
+      <div class="container">
+        <h1>Jobly Backend API</h1>
+
+        <div class="status">● API is Live</div>
+
+        <p>This is the production backend service for the Job Board System (Jobly). It provides secure authentication, job management, application tracking, and recruiter review APIs built with Django REST Framework.</p>
+
+        <a href="/swagger/" class="btn" target="_blank">View API Documentation</a>
+      </div>
+    </div>
+
+    <footer>© 2026 Arnab Saha • Django REST Framework</footer>
+  </body>
+</html>

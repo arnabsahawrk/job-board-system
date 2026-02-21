@@ -6,6 +6,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from django.conf.urls.static import static
 from django.views.static import serve
+from apps.core.views import landing_page
 
 
 schema_view = get_schema_view(
@@ -23,6 +24,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path("", landing_page, name="home"),
     path(
         "swagger/",
         schema_view.with_ui("swagger", cache_timeout=0),
