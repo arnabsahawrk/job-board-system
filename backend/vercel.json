@@ -1,38 +1,22 @@
 {
   "version": 2,
-  "buildCommand": "pip install -r backend/requirements.txt --break-system-packages && cd backend && python manage.py collectstatic --noinput && python manage.py migrate",
-  "installCommand": "pip install -r backend/requirements.txt --break-system-packages",
-  "env": {
-    "DJANGO_SETTINGS_MODULE": "config.settings",
-    "PYTHONUNBUFFERED": "1",
-    "PYTHONDONTWRITEBYTECODE": "1"
-  },
-  "functions": {
-    "config/wsgi.py": {
-      "runtime": "python3.11",
-      "maxDuration": 60,
-      "memory": 1024
-    }
-  },
-  "routes": [
+  "builds": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
+      "src": "config/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.12"
       }
-    },
-    {
-      "src": "/swagger/(.*)",
-      "dest": "config/wsgi.py"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "config/wsgi.py"
-    },
+    }
+  ],
+  "routes": [
     {
       "src": "/(.*)",
       "dest": "config/wsgi.py"
     }
-  ]
+  ],
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "config.settings"
+  }
 }
