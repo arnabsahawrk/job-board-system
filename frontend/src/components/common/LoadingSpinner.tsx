@@ -1,26 +1,21 @@
+import { Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
 interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg'
   className?: string
-  label?: string
+  size?: 'sm' | 'md' | 'lg'
 }
 
-export default function LoadingSpinner({ size = 'md', className = '', label }: LoadingSpinnerProps) {
-  const sizes = { sm: 'h-4 w-4', md: 'h-6 w-6', lg: 'h-10 w-10' }
-  return (
-    <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
-      <div
-        className={`${sizes[size]} animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-primary-600`}
-        aria-hidden="true"
-      />
-      {label && <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>}
-    </div>
-  )
+const sizeMap = { sm: 'h-4 w-4', md: 'h-6 w-6', lg: 'h-8 w-8' }
+
+export function LoadingSpinner({ className, size = 'md' }: LoadingSpinnerProps) {
+  return <Loader2 className={cn('animate-spin text-muted-foreground', sizeMap[size], className)} />
 }
 
 export function PageLoader() {
   return (
-    <div className="flex h-[60vh] items-center justify-center">
-      <LoadingSpinner size="lg" label="Loading..." />
+    <div className="flex items-center justify-center min-h-[400px]">
+      <LoadingSpinner size="lg" />
     </div>
   )
 }

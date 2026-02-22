@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { authApi } from '../api/auth'
-import { clearTokens, setTokens } from '../api/axios'
-import type { User } from '../types'
+import { authApi } from '@/api/auth'
+import { clearTokens, setTokens } from '@/api/axios'
+import type { User } from '@/types'
 
 interface AuthContextValue {
   user: User | null
@@ -20,19 +20,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const stored = localStorage.getItem('user')
       return stored ? JSON.parse(stored) : null
-    } catch {
-      return null
-    }
+    } catch { return null }
   })
   const [isLoading, setIsLoading] = useState(true)
 
   const refreshUser = useCallback(async () => {
     const token = localStorage.getItem('access_token')
-    if (!token) {
-      setUser(null)
-      setIsLoading(false)
-      return
-    }
+    if (!token) { setUser(null); setIsLoading(false); return }
     try {
       const { data } = await authApi.getProfile()
       setUser(data)
@@ -45,9 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  useEffect(() => {
-    refreshUser()
-  }, [refreshUser])
+  useEffect(() => { refreshUser() }, [refreshUser])
 
   const login = useCallback(async (email: string, password: string) => {
     const { data } = await authApi.login({ email, password })
@@ -57,11 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
-    try {
-      await authApi.logout()
-    } catch {
-      // ignore
-    } finally {
+    try { await authApi.logout() } catch { /* ignore */ }
+    finally {
       clearTokens()
       setUser(null)
     }

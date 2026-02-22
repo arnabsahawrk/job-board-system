@@ -39,9 +39,10 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       const refreshToken = localStorage.getItem('refresh_token')
+
+      // No refresh token means guest user — just reject, don't redirect.
+      // Only attempt a redirect if we had an authenticated session that expired.
       if (!refreshToken) {
-        clearTokens()
-        window.location.href = '/login'
         return Promise.reject(error)
       }
 
@@ -73,9 +74,12 @@ api.interceptors.response.use(
         }
         return api(originalRequest)
       } catch (refreshError) {
+        // Refresh failed — the session is truly expired. Clear tokens and
+        // dispatch a custom event so the app can navigate to /login cleanly
+        // without a hard page reload (which breaks SPA state).
         processQueue(refreshError, null)
         clearTokens()
-        window.location.href = '/login'
+        window.dispatchEvent(new CustomEvent('auth:session-expired'))
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
@@ -95,21 +99,6 @@ export function clearTokens() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('user')
-}
-
-export function extractErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const data = error.response?.data
-    if (typeof data === 'string') return data
-    if (data?.error) return data.error
-    if (data?.detail) return data.detail
-    if (data?.message) return data.message
-    if (data?.non_field_errors) return data.non_field_errors[0]
-    const firstKey = Object.keys(data || {}).find((k) => Array.isArray(data[k]))
-    if (firstKey) return `${firstKey}: ${data[firstKey][0]}`
-  }
-  if (error instanceof Error) return error.message
-  return 'Something went wrong. Please try again.'
 }
 
 export default api
