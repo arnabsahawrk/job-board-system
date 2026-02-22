@@ -1,199 +1,225 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { CheckCircle, ChevronDown, Eye, FileText, Mail, Phone, User, XCircle } from 'lucide-react'
-import { applicationsApi } from '../../api/applications'
-import type { ApplicationListItem } from '../../types'
-import { extractErrorMessage } from '../../api/axios'
-import { STATUS_COLORS, STATUS_LABELS, formatRelativeDate } from '../../utils/helpers'
-import LoadingSpinner from '../../components/common/LoadingSpinner'
-import { EmptyState } from '../../components/common/EmptyState'
-import { ApplicationRowSkeleton } from '../../components/common/SkeletonCard'
+import { useParams, Link } from 'react-router-dom'
+import { ArrowLeft, Search, User, Loader2, ExternalLink, MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { EmptyState } from '@/components/common/EmptyState'
+import { applicationsApi } from '@/api/applications'
+import type { ApplicationListItem, ApplicationDetail, User as UserType } from '@/types'
+import { formatDate } from '@/lib/utils'
+import { toast } from 'sonner'
+import { extractErrorMessage } from '@/lib/utils'
 
-interface UpdateModalProps {
-  applicationId: number
-  currentStatus: string
-  applicantName: string
-  onClose: () => void
-  onUpdated: () => void
-}
-
-function UpdateStatusModal({ applicationId, currentStatus, applicantName, onClose, onUpdated }: UpdateModalProps) {
-  const [status, setStatus] = useState(currentStatus)
-  const [feedbackText, setFeedbackText] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleSubmit = async () => {
-    if (!feedbackText.trim()) { toast.error('Feedback is required'); return }
-    setIsLoading(true)
-    try {
-      await applicationsApi.updateStatus(applicationId, status, feedbackText)
-      toast.success('Status updated successfully!')
-      onUpdated()
-      onClose()
-    } catch (err) {
-      toast.error(extractErrorMessage(err))
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-surface-800 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-scale-in">
-        <h2 className="text-lg font-bold font-display text-slate-900 dark:text-white mb-1">Update Application Status</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">for <strong className="text-slate-700 dark:text-slate-300">{applicantName}</strong></p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="label-field">New Status</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['pending', 'reviewed', 'accepted', 'rejected'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatus(s)}
-                  className={`py-2.5 px-3 rounded-xl text-sm font-medium border-2 transition-all ${
-                    status === s
-                      ? s === 'accepted' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'
-                      : s === 'rejected' ? 'border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300'
-                      : 'border-primary-500 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                  }`}
-                >
-                  {STATUS_LABELS[s]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="label-field">Feedback Message *</label>
-            <textarea
-              rows={4}
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              className="input-field resize-none"
-              placeholder="Provide feedback to the applicant..."
-              maxLength={1000}
-            />
-            <p className="text-xs text-slate-400 mt-1 text-right">{feedbackText.length}/1000</p>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button onClick={handleSubmit} disabled={isLoading} className="btn-primary flex-1 justify-center">
-              {isLoading ? <LoadingSpinner size="sm" /> : null}
-              {isLoading ? 'Updating...' : 'Update Status'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+const STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'reviewed', label: 'Reviewed' },
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'rejected', label: 'Rejected' },
+]
+const STATUS_VARIANTS: Record<string, 'default' | 'success' | 'destructive' | 'secondary' | 'pending'> = {
+  pending: 'pending', reviewed: 'secondary', accepted: 'success', rejected: 'destructive',
 }
 
 export default function JobApplicationsPage() {
-  const [searchParams] = useSearchParams()
-  const jobId = searchParams.get('job_id') ? Number(searchParams.get('job_id')) : undefined
+  const { id } = useParams<{ id: string }>()
   const [applications, setApplications] = useState<ApplicationListItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [filter, setFilter] = useState('')
-  const [updateModal, setUpdateModal] = useState<{ id: number; status: string; name: string } | null>(null)
+  const [filtered, setFiltered] = useState<ApplicationListItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
-  const fetchApplications = async () => {
+  const [selectedApp, setSelectedApp] = useState<ApplicationDetail | null>(null)
+  const [applicantProfile, setApplicantProfile] = useState<UserType | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+
+  const [statusUpdate, setStatusUpdate] = useState('')
+  const [feedbackText, setFeedbackText] = useState('')
+  const [updating, setUpdating] = useState(false)
+
+  useEffect(() => {
+    const jobId = id ? parseInt(id) : undefined
+    applicationsApi.jobApplications(jobId)
+      .then(res => { setApplications(res.data); setFiltered(res.data) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [id])
+
+  useEffect(() => {
+    let result = applications
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(a => a.applicant_name.toLowerCase().includes(q) || a.applicant_email.toLowerCase().includes(q))
+    }
+    if (statusFilter) result = result.filter(a => a.status === statusFilter)
+    setFiltered(result)
+  }, [searchQuery, statusFilter, applications])
+
+  const openDetail = async (app: ApplicationListItem) => {
+    setDetailOpen(true)
+    setLoadingDetail(true)
+    setSelectedApp(null)
+    setApplicantProfile(null)
     try {
-      const res = await applicationsApi.jobApplications(jobId)
-      setApplications(res.data)
-    } catch {
-      toast.error('Failed to load applications')
+      const [detailRes, profileRes] = await Promise.all([
+        applicationsApi.get(app.id),
+        applicationsApi.applicantProfile(app.id),
+      ])
+      setSelectedApp(detailRes.data)
+      setApplicantProfile(profileRes.data)
+      setStatusUpdate(detailRes.data.status)
+    } catch (err) {
+      toast.error(extractErrorMessage(err))
+      setDetailOpen(false)
     } finally {
-      setIsLoading(false)
+      setLoadingDetail(false)
     }
   }
 
-  useEffect(() => { fetchApplications() }, [jobId])
+  const handleUpdateStatus = async () => {
+    if (!selectedApp) return
+    setUpdating(true)
+    try {
+      await applicationsApi.updateStatus(selectedApp.id, statusUpdate, feedbackText)
+      toast.success('Application status updated')
+      setApplications(prev => prev.map(a => a.id === selectedApp.id ? { ...a, status: statusUpdate as ApplicationListItem['status'] } : a))
+      setDetailOpen(false)
+    } catch (err) {
+      toast.error(extractErrorMessage(err))
+    } finally {
+      setUpdating(false)
+    }
+  }
 
-  const filtered = filter ? applications.filter((a) => a.status === filter) : applications
+  const initials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
-    <div className="section-container py-8">
-      <div className="mb-8">
-        <h1 className="page-title">
-          {jobId ? 'Job Applications' : 'All Applications'}
-        </h1>
-        <p className="page-subtitle">{applications.length} total application{applications.length !== 1 ? 's' : ''}</p>
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {['', 'pending', 'reviewed', 'accepted', 'rejected'].map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize ${
-              filter === s
-                ? 'bg-primary-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            {s || 'All'}
-            <span className="ml-1.5 text-xs opacity-70">
-              ({s ? applications.filter((a) => a.status === s).length : applications.length})
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => <ApplicationRowSkeleton key={i} />)}
+    <div className="container py-8 max-w-5xl">
+      <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2">
+        <Link to="/my-jobs"><ArrowLeft className="h-4 w-4 mr-1" /> Back to My Jobs</Link>
+      </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold font-display">{id ? 'Job Applications' : 'All Applications'}</h1>
+          <p className="text-muted-foreground text-sm">{filtered.length} applicant{filtered.length !== 1 ? 's' : ''}</p>
         </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name or email..." className="pl-10" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="All Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_all">All Status</SelectItem>
+            {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
       ) : filtered.length === 0 ? (
-        <EmptyState title="No applications found" description="Applications will appear here when candidates apply to your jobs." />
+        <EmptyState icon={User} title="No applications found" description="No applicants match your filter criteria." />
       ) : (
         <div className="space-y-3">
-          {filtered.map((app) => (
-            <div key={app.id} className="card p-4">
-              <div className="flex items-start gap-4">
-                <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-bold font-display flex-shrink-0">
-                  {app.applicant_name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white font-display">{app.applicant_name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{app.applicant_email}</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                        For: <span className="text-slate-600 dark:text-slate-300">{app.job_title}</span> · Applied {formatRelativeDate(app.applied_at)}
-                      </p>
+          {filtered.map(app => (
+            <Card key={app.id} className="hover:border-primary/30 transition-colors cursor-pointer" onClick={() => openDetail(app)}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9 shrink-0">
+                    <AvatarFallback className="text-xs">{initials(app.applicant_name)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
+                      <Badge variant={STATUS_VARIANTS[app.status] || 'secondary'} className="shrink-0 text-xs capitalize">
+                        {app.status}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={STATUS_COLORS[app.status]}>{STATUS_LABELS[app.status]}</span>
-                      <button
-                        onClick={() => setUpdateModal({ id: app.id, status: app.status, name: app.applicant_name })}
-                        className="btn-outline py-1.5 px-3 text-xs"
-                      >
-                        Update Status
-                      </button>
-                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{app.applicant_email}</p>
+                    {!id && <p className="text-xs text-muted-foreground mt-0.5">For: {app.job_title}</p>}
+                    <p className="text-xs text-muted-foreground">Applied {formatDate(app.applied_at)}</p>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
-      {updateModal && (
-        <UpdateStatusModal
-          applicationId={updateModal.id}
-          currentStatus={updateModal.status}
-          applicantName={updateModal.name}
-          onClose={() => setUpdateModal(null)}
-          onUpdated={fetchApplications}
-        />
-      )}
+      {/* Application Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Application Details</DialogTitle>
+            {selectedApp && <DialogDescription>For: {selectedApp.job.title}</DialogDescription>}
+          </DialogHeader>
+          {loadingDetail ? (
+            <div className="space-y-3"><Skeleton className="h-16 w-full" /><Skeleton className="h-32 w-full" /></div>
+          ) : selectedApp && (
+            <div className="space-y-4">
+              {/* Applicant info */}
+              <div className="flex items-center gap-3">
+                <Avatar><AvatarFallback>{initials(selectedApp.applicant_name)}</AvatarFallback></Avatar>
+                <div>
+                  <p className="font-semibold">{selectedApp.applicant_name}</p>
+                  <a href={`mailto:${selectedApp.applicant_email}`} className="text-xs text-primary hover:underline">{selectedApp.applicant_email}</a>
+                  {selectedApp.applicant_phone && <p className="text-xs text-muted-foreground">{selectedApp.applicant_phone}</p>}
+                </div>
+              </div>
+
+              {applicantProfile?.profile?.bio && (
+                <div><p className="text-xs font-medium text-muted-foreground mb-1">Bio</p><p className="text-sm">{applicantProfile.profile.bio}</p></div>
+              )}
+              {applicantProfile?.profile?.skills && (
+                <div><p className="text-xs font-medium text-muted-foreground mb-1">Skills</p><p className="text-sm">{applicantProfile.profile.skills}</p></div>
+              )}
+              {selectedApp.cover_letter && (
+                <div><p className="text-xs font-medium text-muted-foreground mb-1">Cover Letter</p>
+                  <p className="text-sm bg-muted rounded-md p-3 whitespace-pre-wrap">{selectedApp.cover_letter}</p>
+                </div>
+              )}
+              {selectedApp.resume && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={selectedApp.resume} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3 mr-2" />View Resume</a>
+                </Button>
+              )}
+
+              {/* Status update */}
+              <div className="border-t pt-4 space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Update Status</Label>
+                  <Select value={statusUpdate} onValueChange={setStatusUpdate}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Feedback Message</Label>
+                  <Textarea placeholder="Optional message for the applicant..." value={feedbackText} onChange={e => setFeedbackText(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateStatus} disabled={updating || loadingDetail}>
+              {updating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Update Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

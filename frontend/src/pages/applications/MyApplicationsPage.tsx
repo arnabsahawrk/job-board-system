@@ -1,153 +1,163 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { Building2, Eye, MessageSquare, Trash2 } from 'lucide-react'
-import { applicationsApi } from '../../api/applications'
-import type { ApplicationListItem } from '../../types'
-import { extractErrorMessage } from '../../api/axios'
-import { STATUS_COLORS, STATUS_LABELS, formatRelativeDate } from '../../utils/helpers'
-import LoadingSpinner from '../../components/common/LoadingSpinner'
-import { EmptyState } from '../../components/common/EmptyState'
-import { ApplicationRowSkeleton } from '../../components/common/SkeletonCard'
+import { FileText, ExternalLink, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/common/EmptyState'
+import { applicationsApi } from '@/api/applications'
+import type { ApplicationListItem, ApplicationFeedback } from '@/types'
+import { formatDate } from '@/lib/utils'
+import { toast } from 'sonner'
+import { extractErrorMessage } from '@/lib/utils'
+
+const STATUS_CONFIG = {
+  pending: { label: 'Pending Review', variant: 'pending' as const, desc: 'Your application is waiting to be reviewed' },
+  reviewed: { label: 'Under Review', variant: 'info' as 'default', desc: 'The recruiter is reviewing your application' },
+  accepted: { label: 'Accepted 🎉', variant: 'success' as const, desc: 'Congratulations! Your application was accepted' },
+  rejected: { label: 'Not Selected', variant: 'destructive' as const, desc: 'Unfortunately this application was not selected' },
+}
 
 export default function MyApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationListItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [deletingId, setDeletingId] = useState<number | null>(null)
-  const [filter, setFilter] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [feedback, setFeedback] = useState<ApplicationFeedback | null>(null)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [loadingFeedback, setLoadingFeedback] = useState(false)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
 
   useEffect(() => {
     applicationsApi.myApplications()
-      .then((res) => setApplications(res.data))
-      .catch(() => toast.error('Failed to load applications'))
-      .finally(() => setIsLoading(false))
+      .then(res => setApplications(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Withdraw this application?')) return
-    setDeletingId(id)
+  const viewFeedback = async (id: number) => {
+    setLoadingFeedback(true)
+    setFeedbackOpen(true)
     try {
-      await applicationsApi.delete(id)
-      setApplications((prev) => prev.filter((a) => a.id !== id))
-      toast.success('Application withdrawn')
+      const res = await applicationsApi.feedback(id)
+      setFeedback(res.data)
     } catch (err) {
       toast.error(extractErrorMessage(err))
+      setFeedbackOpen(false)
     } finally {
-      setDeletingId(null)
+      setLoadingFeedback(false)
     }
   }
 
-  const filtered = filter ? applications.filter((a) => a.status === filter) : applications
-
-  const counts = {
-    all: applications.length,
-    pending: applications.filter((a) => a.status === 'pending').length,
-    reviewed: applications.filter((a) => a.status === 'reviewed').length,
-    accepted: applications.filter((a) => a.status === 'accepted').length,
-    rejected: applications.filter((a) => a.status === 'rejected').length,
-  }
+  // Group by status for summary
+  const summary = applications.reduce((acc, a) => {
+    acc[a.status] = (acc[a.status] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
 
   return (
-    <div className="section-container py-8">
-      <div className="mb-8">
-        <h1 className="page-title">My Applications</h1>
-        <p className="page-subtitle">{applications.length} total application{applications.length !== 1 ? 's' : ''}</p>
-      </div>
-
-      {/* Status filter tabs */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {[
-          { key: '', label: 'All', count: counts.all },
-          { key: 'pending', label: 'Pending', count: counts.pending },
-          { key: 'reviewed', label: 'Reviewed', count: counts.reviewed },
-          { key: 'accepted', label: 'Accepted', count: counts.accepted },
-          { key: 'rejected', label: 'Rejected', count: counts.rejected },
-        ].map(({ key, label, count }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              filter === key
-                ? 'bg-primary-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            {label}
-            <span className={`px-1.5 py-0.5 rounded-full text-xs ${filter === key ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-              {count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => <ApplicationRowSkeleton key={i} />)}
+    <div className="container py-8 max-w-3xl">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold font-display">My Applications</h1>
+          <p className="text-muted-foreground text-sm mt-1">{applications.length} total applications</p>
         </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          title={filter ? `No ${filter} applications` : 'No applications yet'}
-          description={filter ? 'Try viewing a different status.' : 'Start applying to jobs and track your progress here.'}
-          action={!filter ? <Link to="/jobs" className="btn-primary">Browse Jobs</Link> : undefined}
-        />
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((app) => (
-            <div key={app.id} className="card-hover p-4">
-              <div className="flex items-start gap-4">
-                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-950/50 dark:to-indigo-950/50 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="h-5 w-5 text-primary-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <Link
-                        to={`/jobs/${app.job}`}
-                        className="font-semibold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-display"
-                      >
-                        {app.job_title}
-                      </Link>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{app.job_company}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={STATUS_COLORS[app.status]}>{STATUS_LABELS[app.status]}</span>
-                    </div>
-                  </div>
-                  <div className="mt-2.5 flex items-center justify-between">
-                    <span className="text-xs text-slate-400 dark:text-slate-500">
-                      Applied {formatRelativeDate(app.applied_at)}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Link
-                        to={`/applications/${app.id}`}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-colors"
-                        title="View details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                      <Link
-                        to={`/applications/${app.id}/feedback`}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
-                        title="View feedback"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(app.id)}
-                        disabled={deletingId === app.id}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                        title="Withdraw"
-                      >
-                        {deletingId === app.id ? <LoadingSpinner size="sm" /> : <Trash2 className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <Button asChild variant="outline"><Link to="/jobs">Browse more jobs</Link></Button>
+      </div>
+
+      {/* Status summary */}
+      {!loading && applications.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+            <Card key={key} className="text-center">
+              <CardContent className="py-3 px-4">
+                <p className="text-xl font-bold">{summary[key] || 0}</p>
+                <Badge variant={cfg.variant} className="text-xs mt-1">{cfg.label.replace(' 🎉', '')}</Badge>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
+
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+        </div>
+      ) : applications.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="No applications yet"
+          description="Start applying to jobs you're interested in"
+          action={<Button asChild><Link to="/jobs">Browse Jobs</Link></Button>}
+        />
+      ) : (
+        <div className="space-y-3">
+          {applications.map(app => {
+            const cfg = STATUS_CONFIG[app.status] || STATUS_CONFIG.pending
+            const isExpanded = expandedId === app.id
+            return (
+              <Card key={app.id} className={app.status === 'accepted' ? 'border-green-500/50 bg-green-50/30 dark:bg-green-900/10' : ''}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <Link to={`/jobs/${app.job}`} className="text-sm font-semibold hover:text-primary transition-colors truncate block">
+                            {app.job_title}
+                          </Link>
+                          <p className="text-xs text-muted-foreground">{app.job_company} · Applied {formatDate(app.applied_at)}</p>
+                        </div>
+                        <Badge variant={cfg.variant} className="shrink-0 text-xs">{cfg.label}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{cfg.desc}</p>
+                    </div>
+                  </div>
+
+                  {(app.status === 'accepted' || app.status === 'rejected') && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => viewFeedback(app.id)}>
+                        <MessageSquare className="h-3 w-3 mr-1" /> View Feedback
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/jobs/${app.job}`}><ExternalLink className="h-3 w-3 mr-1" /> View Job</Link>
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Application Feedback</DialogTitle>
+          </DialogHeader>
+          {loadingFeedback ? (
+            <div className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-16 w-full" /></div>
+          ) : feedback ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium mb-1">{feedback.job_title}</p>
+                <Badge variant={feedback.status_given === 'accepted' ? 'success' : 'destructive'} className="text-xs">
+                  {feedback.status_given === 'accepted' ? 'Accepted' : 'Not Selected'}
+                </Badge>
+              </div>
+              {feedback.feedback_text && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Recruiter's message</p>
+                  <p className="text-sm bg-muted rounded-md p-3">{feedback.feedback_text}</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">From: {feedback.recruiter_name}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No feedback available</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
