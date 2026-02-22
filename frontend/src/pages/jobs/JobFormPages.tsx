@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import toast from 'react-hot-toast'
-import { Building2, Image, Loader2, Plus } from 'lucide-react'
-import { jobsApi } from '../../api/jobs'
-import { extractErrorMessage } from '../../api/axios'
-import { JOB_CATEGORY_LABELS, JOB_TYPE_LABELS } from '../../utils/helpers'
-import LoadingSpinner, { PageLoader } from '../../components/common/LoadingSpinner'
+import { useForm, Controller } from 'react-hook-form'
+import { Loader2, Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { jobsApi } from '@/api/jobs'
+import { extractErrorMessage } from '@/lib/utils'
+import { toast } from 'sonner'
 
-interface JobFormData {
+interface JobFormFields {
   title: string
   description: string
   requirements: string
@@ -22,287 +27,251 @@ interface JobFormData {
   application_deadline: string
 }
 
-function JobForm({ defaultValues, onSubmit, isLoading, title }: {
-  defaultValues?: Partial<JobFormData>
-  onSubmit: (data: JobFormData, logo?: File) => Promise<void>
-  isLoading: boolean
-  title: string
-}) {
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const logoRef = useRef<HTMLInputElement>(null)
+const JOB_TYPES = [
+  { value: 'full_time', label: 'Full-time' },
+  { value: 'part_time', label: 'Part-time' },
+  { value: 'remote', label: 'Remote' },
+  { value: 'contract', label: 'Contract' },
+  { value: 'internship', label: 'Internship' },
+]
 
-  const { register, handleSubmit, formState: { errors } } = useForm<JobFormData>({
-    defaultValues,
+const CATEGORIES = [
+  { value: 'it', label: 'Technology' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'education', label: 'Education' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'design', label: 'Design' },
+  { value: 'other', label: 'Other' },
+]
+
+function JobForm({ defaultValues, onSubmit, isLoading, isEdit }: {
+  defaultValues?: Partial<JobFormFields>
+  onSubmit: (data: JobFormFields, logo?: File) => Promise<void>
+  isLoading?: boolean
+  isEdit?: boolean
+}) {
+  const [logo, setLogo] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<JobFormFields>({
+    defaultValues
   })
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setLogoFile(file)
+      setLogo(file)
       setLogoPreview(URL.createObjectURL(file))
     }
   }
 
-  const submitHandler = (data: JobFormData) => onSubmit(data, logoFile || undefined)
+  const submitHandler = async (data: JobFormFields) => {
+    await onSubmit(data, logo || undefined)
+  }
+
+  const busy = isSubmitting || isLoading
 
   return (
-    <div className="section-container py-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-8">
-          <h1 className="page-title">{title}</h1>
-          <p className="page-subtitle">Fill in the details to post your opportunity</p>
-        </div>
-
-        <form onSubmit={handleSubmit(submitHandler)} className="space-y-6">
-          {/* Basic Info */}
-          <div className="card p-6 space-y-5">
-            <h2 className="text-base font-semibold font-display text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-3">
-              Basic Information
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="sm:col-span-2">
-                <label className="label-field">Job Title *</label>
-                <input
-                  className={`input-field ${errors.title ? 'border-red-400' : ''}`}
-                  placeholder="e.g. Senior Django Developer"
-                  {...register('title', { required: 'Job title is required' })}
-                />
-                {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>}
-              </div>
-
-              <div>
-                <label className="label-field">Category *</label>
-                <select className={`input-field ${errors.category ? 'border-red-400' : ''}`}
-                  {...register('category', { required: 'Category is required' })}>
-                  <option value="">Select category</option>
-                  {Object.entries(JOB_CATEGORY_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
-                {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category.message}</p>}
-              </div>
-
-              <div>
-                <label className="label-field">Job Type *</label>
-                <select className={`input-field ${errors.job_type ? 'border-red-400' : ''}`}
-                  {...register('job_type', { required: 'Job type is required' })}>
-                  <option value="">Select type</option>
-                  {Object.entries(JOB_TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
-                {errors.job_type && <p className="mt-1 text-xs text-red-500">{errors.job_type.message}</p>}
-              </div>
-
-              <div>
-                <label className="label-field">Location *</label>
-                <input
-                  className={`input-field ${errors.location ? 'border-red-400' : ''}`}
-                  placeholder="e.g. New York, NY or Remote"
-                  {...register('location', { required: 'Location is required' })}
-                />
-                {errors.location && <p className="mt-1 text-xs text-red-500">{errors.location.message}</p>}
-              </div>
-
-              <div>
-                <label className="label-field">Salary (USD/year)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  placeholder="e.g. 120000"
-                  {...register('salary', { min: { value: 1, message: 'Salary must be positive' } })}
-                />
-              </div>
-
-              <div>
-                <label className="label-field">Experience Required (years)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  placeholder="0"
-                  min="0"
-                  {...register('experience_required', { min: 0 })}
-                />
-              </div>
-
-              <div>
-                <label className="label-field">Number of Positions</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  placeholder="1"
-                  min="1"
-                  {...register('position_count', { min: { value: 1, message: 'Min 1 position' } })}
-                />
-              </div>
-
-              <div>
-                <label className="label-field">Application Deadline</label>
-                <input
-                  type="datetime-local"
-                  className="input-field"
-                  {...register('application_deadline')}
-                />
-              </div>
+    <form onSubmit={handleSubmit(submitHandler)} className="space-y-6">
+      {/* Basic Info */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Basic Information</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="title">Job Title *</Label>
+              <Input id="title" placeholder="e.g. Senior React Developer" {...register('title', { required: 'Title is required' })} />
+              {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="company_name">Company Name *</Label>
+              <Input id="company_name" placeholder="e.g. Acme Corp" {...register('company_name', { required: 'Company name is required' })} />
+              {errors.company_name && <p className="text-xs text-destructive">{errors.company_name.message}</p>}
             </div>
           </div>
 
-          {/* Company Info */}
-          <div className="card p-6 space-y-5">
-            <h2 className="text-base font-semibold font-display text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-3">
-              Company Details
-            </h2>
-
-            <div>
-              <label className="label-field">Company Name *</label>
-              <input
-                className={`input-field ${errors.company_name ? 'border-red-400' : ''}`}
-                placeholder="e.g. Tech Corp"
-                {...register('company_name', { required: 'Company name is required' })}
-              />
-              {errors.company_name && <p className="mt-1 text-xs text-red-500">{errors.company_name.message}</p>}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Job Type *</Label>
+              <Controller name="job_type" control={control} rules={{ required: true }} render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>{JOB_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                </Select>
+              )} />
+              {errors.job_type && <p className="text-xs text-destructive">Required</p>}
             </div>
+            <div className="space-y-1.5">
+              <Label>Category *</Label>
+              <Controller name="category" control={control} rules={{ required: true }} render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                </Select>
+              )} />
+              {errors.category && <p className="text-xs text-destructive">Required</p>}
+            </div>
+          </div>
 
-            <div>
-              <label className="label-field">Company Logo</label>
-              <div
-                onClick={() => logoRef.current?.click()}
-                className="flex items-center gap-4 p-4 border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-700 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
-              >
-                <input ref={logoRef} type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleLogoChange} />
-                <div className="h-14 w-14 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {logoPreview ? (
-                    <img src={logoPreview} alt="Logo preview" className="h-full w-full object-contain" />
-                  ) : (
-                    <Building2 className="h-7 w-7 text-slate-400" />
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {logoFile ? logoFile.name : 'Upload company logo'}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">JPG, PNG — max 1MB</p>
-                </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="location">Location *</Label>
+            <Input id="location" placeholder="e.g. New York, NY or Remote" {...register('location', { required: 'Location is required' })} />
+            {errors.location && <p className="text-xs text-destructive">{errors.location.message}</p>}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Details */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Job Details</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="description">Job Description *</Label>
+            <Textarea id="description" placeholder="Describe the role, responsibilities, and team..." className="min-h-[140px]"
+              {...register('description', { required: 'Description is required' })} />
+            {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="requirements">Requirements</Label>
+            <Textarea id="requirements" placeholder="List skills, qualifications, and experience required..." className="min-h-[100px]"
+              {...register('requirements')} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Compensation & Additional */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Compensation & Additional Info</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="salary">Annual Salary (USD)</Label>
+              <Input id="salary" type="number" placeholder="e.g. 80000" {...register('salary')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="experience_required">Min. Experience (years)</Label>
+              <Input id="experience_required" type="number" min="0" placeholder="e.g. 2" {...register('experience_required')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="position_count">Open Positions</Label>
+              <Input id="position_count" type="number" min="1" placeholder="e.g. 3" {...register('position_count')} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="application_deadline">Application Deadline</Label>
+            <Input id="application_deadline" type="date" {...register('application_deadline')} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Company Logo */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Company Logo</CardTitle><CardDescription>Optional. PNG or JPG, max 2MB.</CardDescription></CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            {logoPreview && (
+              <div className="h-16 w-16 rounded-lg border overflow-hidden shrink-0">
+                <img src={logoPreview} alt="" className="h-full w-full object-cover" />
               </div>
-            </div>
+            )}
+            <label className="cursor-pointer">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm hover:bg-accent transition-colors">
+                <Upload className="h-4 w-4" /> {logoPreview ? 'Change Logo' : 'Upload Logo'}
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+            </label>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Description & Requirements */}
-          <div className="card p-6 space-y-5">
-            <h2 className="text-base font-semibold font-display text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-3">
-              Job Details
-            </h2>
-
-            <div>
-              <label className="label-field">Job Description *</label>
-              <textarea
-                rows={7}
-                className={`input-field resize-none ${errors.description ? 'border-red-400' : ''}`}
-                placeholder="Describe the role, responsibilities, and what a day looks like..."
-                {...register('description', { required: 'Description is required' })}
-              />
-              {errors.description && <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>}
-            </div>
-
-            <div>
-              <label className="label-field">Requirements *</label>
-              <textarea
-                rows={5}
-                className={`input-field resize-none ${errors.requirements ? 'border-red-400' : ''}`}
-                placeholder="List required skills, experience, and qualifications..."
-                {...register('requirements', { required: 'Requirements are required' })}
-              />
-              {errors.requirements && <p className="mt-1 text-xs text-red-500">{errors.requirements.message}</p>}
-            </div>
-          </div>
-
-          {/* Submit */}
-          <div className="flex items-center gap-3 justify-end">
-            <button type="button" onClick={() => window.history.back()} className="btn-secondary">
-              Cancel
-            </button>
-            <button type="submit" disabled={isLoading} className="btn-primary px-8">
-              {isLoading ? <LoadingSpinner size="sm" /> : <Plus className="h-4 w-4" />}
-              {isLoading ? 'Posting...' : 'Post Job'}
-            </button>
-          </div>
-        </form>
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={() => window.history.back()}>Cancel</Button>
+        <Button type="submit" disabled={busy}>
+          {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {isEdit ? 'Save Changes' : 'Post Job'}
+        </Button>
       </div>
-    </div>
+    </form>
   )
 }
 
 export function PostJobPage() {
   const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(false)
 
-  const onSubmit = async (data: JobFormData, logo?: File) => {
-    setIsLoading(true)
+  const handleSubmit = async (data: JobFormFields, logo?: File) => {
+    const formData = new FormData()
+    Object.entries(data).forEach(([key, val]) => { if (val) formData.append(key, val) })
+    if (logo) formData.append('company_logo', logo)
     try {
-      const fd = new FormData()
-      Object.entries(data).forEach(([k, v]) => { if (v) fd.append(k, v) })
-      if (logo) fd.append('company_logo', logo)
-      const res = await jobsApi.create(fd)
+      const res = await jobsApi.create(formData)
       toast.success('Job posted successfully!')
       navigate(`/jobs/${res.data.id}`)
     } catch (err) {
       toast.error(extractErrorMessage(err))
-    } finally {
-      setIsLoading(false)
+      throw err
     }
   }
 
-  return <JobForm title="Post a New Job" onSubmit={onSubmit} isLoading={isLoading} />
+  return (
+    <div className="container py-8 max-w-2xl">
+      <h1 className="text-2xl font-bold font-display mb-6">Post a New Job</h1>
+      <JobForm onSubmit={handleSubmit} />
+    </div>
+  )
 }
 
 export function EditJobPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(false)
-  const [pageLoading, setPageLoading] = useState(true)
-  const [defaultValues, setDefaultValues] = useState<Partial<JobFormData>>({})
+  const [defaults, setDefaults] = useState<Partial<JobFormFields> | null>(null)
 
   useEffect(() => {
-    jobsApi.get(Number(id))
-      .then(({ data }) => {
-        setDefaultValues({
-          title: data.title,
-          description: data.description,
-          requirements: data.requirements,
-          location: data.location,
-          job_type: data.job_type,
-          category: data.category,
-          company_name: data.company_name,
-          salary: data.salary ? String(data.salary) : '',
-          experience_required: String(data.experience_required),
-          position_count: String(data.position_count),
-          application_deadline: data.application_deadline?.slice(0, 16) || '',
-        })
+    if (!id) return
+    jobsApi.get(parseInt(id)).then(res => {
+      const job = res.data
+      setDefaults({
+        title: job.title,
+        description: job.description,
+        requirements: job.requirements || '',
+        location: job.location,
+        job_type: job.job_type,
+        category: job.category,
+        company_name: job.company_name,
+        salary: job.salary?.toString() || '',
+        experience_required: job.experience_required?.toString() || '',
+        position_count: job.position_count?.toString() || '',
+        application_deadline: job.application_deadline ? job.application_deadline.split('T')[0] : '',
       })
-      .catch(() => { toast.error('Failed to load job'); navigate('/my-jobs') })
-      .finally(() => setPageLoading(false))
+    }).catch(() => navigate('/my-jobs'))
   }, [id, navigate])
 
-  const onSubmit = async (data: JobFormData, logo?: File) => {
-    setIsLoading(true)
+  const handleSubmit = async (data: JobFormFields, logo?: File) => {
+    if (!id) return
+    const formData = new FormData()
+    Object.entries(data).forEach(([key, val]) => { if (val) formData.append(key, val) })
+    if (logo) formData.append('company_logo', logo)
     try {
-      const fd = new FormData()
-      Object.entries(data).forEach(([k, v]) => { if (v) fd.append(k, v) })
-      if (logo) fd.append('company_logo', logo)
-      await jobsApi.update(Number(id), fd)
+      await jobsApi.update(parseInt(id), formData)
       toast.success('Job updated successfully!')
       navigate(`/jobs/${id}`)
     } catch (err) {
       toast.error(extractErrorMessage(err))
-    } finally {
-      setIsLoading(false)
+      throw err
     }
   }
 
-  if (pageLoading) return <PageLoader />
-  return <JobForm title="Edit Job" defaultValues={defaultValues} onSubmit={onSubmit} isLoading={isLoading} />
+  if (!defaults) return <div className="container py-8"><div className="h-96 bg-muted rounded-lg animate-pulse" /></div>
+
+  return (
+    <div className="container py-8 max-w-2xl">
+      <h1 className="text-2xl font-bold font-display mb-6">Edit Job Listing</h1>
+      <JobForm defaultValues={defaults} onSubmit={handleSubmit} isEdit />
+    </div>
+  )
 }
 
-
+interface JobFormFields {
+  title: string; description: string; requirements: string; location: string; job_type: string;
+  category: string; company_name: string; salary: string; experience_required: string; position_count: string; application_deadline: string;
+}

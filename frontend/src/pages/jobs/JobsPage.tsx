@@ -1,274 +1,337 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Filter, Search, SlidersHorizontal, X } from 'lucide-react'
-import { jobsApi, type JobFilters } from '../../api/jobs'
-import type { JobListItem, PaginatedResponse } from '../../types'
-import { JOB_CATEGORY_LABELS, JOB_TYPE_LABELS } from '../../utils/helpers'
-import JobCard from '../../components/common/JobCard'
-import { JobCardSkeleton } from '../../components/common/SkeletonCard'
-import { EmptyState } from '../../components/common/EmptyState'
+import { jobsApi } from "@/api/jobs";
+import { EmptyState } from "@/components/common/EmptyState";
+import { JobCard } from "@/components/common/JobCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { JobListItem } from "@/types";
+import { Building2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
-const CATEGORIES = Object.entries(JOB_CATEGORY_LABELS)
-const JOB_TYPES = Object.entries(JOB_TYPE_LABELS)
-const ORDERING_OPTIONS = [
-  { value: '-created_at', label: 'Newest first' },
-  { value: 'created_at', label: 'Oldest first' },
-  { value: '-salary', label: 'Highest salary' },
-  { value: 'salary', label: 'Lowest salary' },
-]
+const CATEGORIES = [
+  { label: "All Categories", value: "" },
+  { label: "Technology", value: "it" },
+  { label: "Healthcare", value: "healthcare" },
+  { label: "Finance", value: "finance" },
+  { label: "Education", value: "education" },
+  { label: "Marketing", value: "marketing" },
+  { label: "Design", value: "design" },
+  { label: "Other", value: "other" },
+];
+
+const JOB_TYPES = [
+  { label: "All Types", value: "" },
+  { label: "Full-time", value: "full_time" },
+  { label: "Part-time", value: "part_time" },
+  { label: "Remote", value: "remote" },
+  { label: "Contract", value: "contract" },
+  { label: "Internship", value: "internship" },
+];
+
+const ORDERING = [
+  { label: "Newest first", value: "-created_at" },
+  { label: "Oldest first", value: "created_at" },
+  { label: "Highest salary", value: "-salary" },
+];
+
+const PAGE_SIZE = 12;
+const ALL = "__all__"; // sentinel for "no filter" in Radix Select (can't use empty string)
 
 export default function JobsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [data, setData] = useState<PaginatedResponse<JobListItem> | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [showFilters, setShowFilters] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [jobs, setJobs] = useState<JobListItem[]>([]);
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const filters: JobFilters = {
-    search: searchParams.get('search') || undefined,
-    category: searchParams.get('category') || undefined,
-    job_type: searchParams.get('job_type') || undefined,
-    location: searchParams.get('location') || undefined,
-    ordering: searchParams.get('ordering') || '-created_at',
-    page: Number(searchParams.get('page')) || 1,
-  }
+  const search = searchParams.get("search") || "";
+  const category = searchParams.get("category") || "";
+  const jobType = searchParams.get("job_type") || "";
+  const location = searchParams.get("location") || "";
+  const ordering = searchParams.get("ordering") || "-created_at";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+
+  const [searchInput, setSearchInput] = useState(search);
+  const [locationInput, setLocationInput] = useState(location);
 
   const fetchJobs = useCallback(async () => {
-    setIsLoading(true)
+    setLoading(true);
     try {
-      const res = await jobsApi.list(filters)
-      setData(res.data)
+      const { data } = await jobsApi.list({
+        page,
+        page_size: PAGE_SIZE,
+        search: search || undefined,
+        category: category || undefined,
+        job_type: jobType || undefined,
+        location: location || undefined,
+        ordering,
+      });
+      setJobs(data.results);
+      setCount(data.count);
     } catch {
-      // silent
+      /* ignore */
     } finally {
-      setIsLoading(false)
+      setLoading(false);
     }
-  }, [searchParams])
+  }, [page, search, category, jobType, location, ordering]);
 
-  useEffect(() => { fetchJobs() }, [fetchJobs])
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
-  const updateFilter = (key: string, value: string | null) => {
-    const next = new URLSearchParams(searchParams)
-    if (value) next.set(key, value)
-    else next.delete(key)
-    next.delete('page')
-    setSearchParams(next)
-  }
+  const updateParam = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams);
+    const real = value === ALL ? "" : value;
+    if (real) params.set(key, real);
+    else params.delete(key);
+    params.delete("page");
+    setSearchParams(params);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams);
+    if (searchInput) params.set("search", searchInput);
+    else params.delete("search");
+    if (locationInput) params.set("location", locationInput);
+    else params.delete("location");
+    params.delete("page");
+    setSearchParams(params);
+  };
 
   const clearFilters = () => {
-    setSearchParams(new URLSearchParams())
-  }
+    setSearchInput("");
+    setLocationInput("");
+    setSearchParams({});
+  };
 
-  const hasActiveFilters = searchParams.get('category') || searchParams.get('job_type') || searchParams.get('location') || searchParams.get('search')
+  const hasFilters = search || category || jobType || location;
+  const totalPages = Math.ceil(count / PAGE_SIZE);
 
-  const totalPages = data ? Math.ceil(data.count / 10) : 0
-  const currentPage = Number(searchParams.get('page')) || 1
+  const setPage = (p: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", String(p));
+    setSearchParams(params);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <div className="section-container py-8">
+    <div className="container py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="page-title">Find Your Next Role</h1>
-        <p className="page-subtitle">{data ? `${data.count.toLocaleString()} jobs available` : 'Searching jobs...'}</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold font-display mb-1">Browse Jobs</h1>
+        <p className="text-sm text-muted-foreground">
+          {count > 0 ? `${count} openings available` : "Explore all openings"}
+        </p>
       </div>
 
       {/* Search bar */}
-      <div className="flex gap-3 mb-6">
+      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5 mb-5">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            defaultValue={filters.search || ''}
-            placeholder="Search jobs, companies, skills..."
-            className="input-field pl-10"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                updateFilter('search', (e.target as HTMLInputElement).value)
-              }
-            }}
-            onChange={(e) => {
-              if (!e.target.value) updateFilter('search', null)
-            }}
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Job title or keyword"
+            className="pl-9"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`btn-outline gap-2 ${showFilters ? 'bg-slate-100 dark:bg-slate-800' : ''}`}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          <span className="hidden sm:inline">Filters</span>
-          {hasActiveFilters && (
-            <span className="h-2 w-2 rounded-full bg-primary-500" />
-          )}
-        </button>
-        {hasActiveFilters && (
-          <button onClick={clearFilters} className="btn-outline text-red-500 hover:border-red-400 gap-2">
-            <X className="h-4 w-4" />
-            <span className="hidden sm:inline">Clear</span>
-          </button>
+        <Input
+          placeholder="Location"
+          className="sm:w-44"
+          value={locationInput}
+          onChange={(e) => setLocationInput(e.target.value)}
+        />
+        <Button type="submit" className="shrink-0">
+          Search
+        </Button>
+      </form>
+
+      {/* Filter row */}
+      <div className="flex flex-wrap items-center gap-2.5 mb-5">
+        <Select value={category || ALL} onValueChange={(v) => updateParam("category", v)}>
+          <SelectTrigger className="w-40 h-9 text-sm">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c.value || ALL} value={c.value || ALL}>
+                {c.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={jobType || ALL} onValueChange={(v) => updateParam("job_type", v)}>
+          <SelectTrigger className="w-36 h-9 text-sm">
+            <SelectValue placeholder="Job Type" />
+          </SelectTrigger>
+          <SelectContent>
+            {JOB_TYPES.map((t) => (
+              <SelectItem key={t.value || ALL} value={t.value || ALL}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={ordering} onValueChange={(v) => updateParam("ordering", v)}>
+          <SelectTrigger className="w-40 h-9 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ORDERING.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-9 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5 mr-1.5" /> Clear
+          </Button>
         )}
+
+        <span className="ml-auto text-sm text-muted-foreground">
+          {count} result{count !== 1 ? "s" : ""}
+        </span>
       </div>
 
-      {/* Filter panel */}
-      {showFilters && (
-        <div className="card p-5 mb-6 animate-slide-down">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* Category */}
-            <div>
-              <label className="label-field">Category</label>
-              <select
-                value={filters.category || ''}
-                onChange={(e) => updateFilter('category', e.target.value || null)}
-                className="input-field"
-              >
-                <option value="">All categories</option>
-                {CATEGORIES.map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Job type */}
-            <div>
-              <label className="label-field">Job Type</label>
-              <select
-                value={filters.job_type || ''}
-                onChange={(e) => updateFilter('job_type', e.target.value || null)}
-                className="input-field"
-              >
-                <option value="">All types</option>
-                {JOB_TYPES.map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="label-field">Location</label>
-              <input
-                type="text"
-                defaultValue={filters.location || ''}
-                placeholder="City, state, remote..."
-                className="input-field"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') updateFilter('location', (e.target as HTMLInputElement).value || null)
-                }}
-              />
-            </div>
-
-            {/* Sort */}
-            <div>
-              <label className="label-field">Sort By</label>
-              <select
-                value={filters.ordering || '-created_at'}
-                onChange={(e) => updateFilter('ordering', e.target.value)}
-                className="input-field"
-              >
-                {ORDERING_OPTIONS.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Active filter pills */}
-      {hasActiveFilters && (
+      {/* Active filter chips */}
+      {hasFilters && (
         <div className="flex flex-wrap gap-2 mb-5">
-          {filters.search && (
-            <button
-              onClick={() => updateFilter('search', null)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/50 hover:bg-primary-100 transition-colors"
-            >
-              Search: {filters.search}
-              <X className="h-3 w-3" />
-            </button>
+          {search && (
+            <FilterChip
+              label={search}
+              onRemove={() => {
+                setSearchInput("");
+                updateParam("search", "");
+              }}
+            />
           )}
-          {filters.category && (
-            <button
-              onClick={() => updateFilter('category', null)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium badge-gray border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            >
-              {JOB_CATEGORY_LABELS[filters.category as keyof typeof JOB_CATEGORY_LABELS]}
-              <X className="h-3 w-3" />
-            </button>
+          {category && (
+            <FilterChip
+              label={CATEGORIES.find((c) => c.value === category)?.label || category}
+              onRemove={() => updateParam("category", "")}
+            />
           )}
-          {filters.job_type && (
-            <button
-              onClick={() => updateFilter('job_type', null)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium badge-gray border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            >
-              {JOB_TYPE_LABELS[filters.job_type as keyof typeof JOB_TYPE_LABELS]}
-              <X className="h-3 w-3" />
-            </button>
+          {jobType && (
+            <FilterChip
+              label={JOB_TYPES.find((t) => t.value === jobType)?.label || jobType}
+              onRemove={() => updateParam("job_type", "")}
+            />
           )}
-          {filters.location && (
-            <button
-              onClick={() => updateFilter('location', null)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium badge-gray border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            >
-              📍 {filters.location}
-              <X className="h-3 w-3" />
-            </button>
+          {location && (
+            <FilterChip
+              label={location}
+              onRemove={() => {
+                setLocationInput("");
+                updateParam("location", "");
+              }}
+            />
           )}
         </div>
       )}
 
-      {/* Job grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => <JobCardSkeleton key={i} />)}
-        </div>
-      ) : data?.results.length === 0 ? (
-        <EmptyState
-          title="No jobs found"
-          description={hasActiveFilters ? "Try adjusting your filters or search terms." : "No jobs available right now. Check back soon!"}
-          action={hasActiveFilters ? <button onClick={clearFilters} className="btn-primary">Clear Filters</button> : undefined}
-        />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data?.results.map((job) => (
-            <JobCard key={job.id} job={job} />
+      {/* Results grid */}
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-5 space-y-3">
+                <div className="flex gap-3">
+                  <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
-      )}
+      ) : jobs.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="No jobs found"
+          description="Try adjusting your search or removing some filters."
+          action={
+            <Button variant="outline" onClick={clearFilters}>
+              Clear all filters
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {jobs.map((job) => (
+                <div key={job.id} className="min-w-0">
+                  <JobCard job={job} />
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-10 flex items-center justify-center gap-2">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => updateFilter('page', String(currentPage - 1))}
-            className="btn-outline py-2 px-4 disabled:opacity-40"
-          >
-            Previous
-          </button>
-          {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
-            const page = i + 1
-            return (
-              <button
-                key={page}
-                onClick={() => updateFilter('page', String(page))}
-                className={`w-10 h-10 rounded-xl text-sm font-medium transition-all ${
-                  page === currentPage
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'btn-outline py-0 px-0'
-                }`}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-10">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
               >
-                {page}
-              </button>
-            )
-          })}
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => updateFilter('page', String(currentPage + 1))}
-            className="btn-outline py-2 px-4 disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+              </Button>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage(page + 1)}
+              >
+                Next <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
-  )
+  );
+}
+
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <Badge variant="secondary" className="gap-1 pr-1 pl-2.5 py-1 text-xs font-normal">
+      {label}
+      <button
+        onClick={onRemove}
+        className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 h-4 w-4 inline-flex items-center justify-center transition-colors"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </Badge>
+  );
 }
