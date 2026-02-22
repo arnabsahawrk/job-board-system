@@ -1,255 +1,226 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Briefcase, CheckCircle, Clock, Plus, Search, Star, TrendingUp, Users, XCircle } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
-import { applicationsApi } from '../../api/applications'
-import { jobsApi } from '../../api/jobs'
-import { reviewsApi } from '../../api/reviews'
-import type { StatusSummary, JobListItem, ReviewListItem } from '../../types'
-import { formatRelativeDate } from '../../utils/helpers'
-import LoadingSpinner from '../../components/common/LoadingSpinner'
-import { StatCardSkeleton } from '../../components/common/SkeletonCard'
+import { FileText, Briefcase, Star, Clock, CheckCircle2, XCircle, ArrowRight, PlusCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/context/AuthContext'
+import { applicationsApi } from '@/api/applications'
+import { jobsApi } from '@/api/jobs'
+import { reviewsApi } from '@/api/reviews'
+import type { StatusSummary, JobListItem, ReviewListItem, ApplicationListItem } from '@/types'
+import { timeAgo } from '@/lib/utils'
 
-function StatCard({ label, value, icon: Icon, color }: { label: string; value: number | string; icon: React.ElementType; color: string }) {
-  return (
-    <div className="card p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className={`h-10 w-10 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div className="text-2xl font-bold font-display text-slate-900 dark:text-white">{value}</div>
-      <div className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{label}</div>
-    </div>
-  )
+const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'destructive' | 'secondary' | 'pending' }> = {
+  pending: { label: 'Pending', variant: 'pending' },
+  reviewed: { label: 'Reviewed', variant: 'info' as 'default' },
+  accepted: { label: 'Accepted', variant: 'success' },
+  rejected: { label: 'Rejected', variant: 'destructive' },
 }
 
-function SeekerDashboard() {
+export default function DashboardPage() {
   const { user } = useAuth()
-  const [summary, setSummary] = useState<StatusSummary | null>(null)
-  const [recentJobs, setRecentJobs] = useState<JobListItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const isSeeker = user?.role === 'seeker'
+  const [loading, setLoading] = useState(true)
+
+  // Seeker data
+  const [statusSummary, setStatusSummary] = useState<StatusSummary | null>(null)
+  const [recentApplications, setRecentApplications] = useState<ApplicationListItem[]>([])
+  const [myReviews, setMyReviews] = useState<ReviewListItem[]>([])
+
+  // Recruiter data
+  const [myJobs, setMyJobs] = useState<JobListItem[]>([])
+  const [recentApps, setRecentApps] = useState<ApplicationListItem[]>([])
+  const [receivedReviews, setReceivedReviews] = useState<ReviewListItem[]>([])
 
   useEffect(() => {
-    Promise.all([
-      applicationsApi.statusSummary(),
-      jobsApi.list({ page_size: 5 }),
-    ])
-      .then(([sumRes, jobsRes]) => {
-        setSummary(sumRes.data)
-        setRecentJobs(jobsRes.data.results)
-      })
-      .finally(() => setIsLoading(false))
-  }, [])
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        if (isSeeker) {
+          const [summaryRes, appsRes, reviewsRes] = await Promise.all([
+            applicationsApi.statusSummary(),
+            applicationsApi.myApplications(),
+            reviewsApi.myReviews(),
+          ])
+          setStatusSummary(summaryRes.data)
+          setRecentApplications(appsRes.data.slice(0, 5))
+          setMyReviews(reviewsRes.data.slice(0, 3))
+        } else {
+          const [jobsRes, appsRes, reviewsRes] = await Promise.all([
+            jobsApi.myJobs(),
+            applicationsApi.jobApplications(),
+            reviewsApi.myReceivedReviews(),
+          ])
+          setMyJobs(jobsRes.data)
+          setRecentApps(appsRes.data.slice(0, 5))
+          setReceivedReviews(reviewsRes.data.slice(0, 3))
+        }
+      } catch { /* ignore */ }
+      finally { setLoading(false) }
+    }
+    fetchData()
+  }, [isSeeker])
+
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   return (
-    <div className="section-container py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="page-title">Welcome back, {user?.full_name.split(' ')[0]}! 👋</h1>
-        <p className="page-subtitle">Here's an overview of your job search activity</p>
+    <div className="container py-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold font-display">{greeting}, {user?.full_name?.split(' ')[0]} 👋</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{isSeeker ? 'Track your job search progress' : 'Manage your postings and applications'}</p>
+        </div>
+        {isSeeker ? (
+          <Button asChild><Link to="/jobs">Browse Jobs <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+        ) : (
+          <Button asChild><Link to="/jobs/post"><PlusCircle className="mr-2 h-4 w-4" />Post New Job</Link></Button>
+        )}
       </div>
 
       {/* Stats */}
-      {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+      {isSeeker ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}><CardContent className="p-5"><Skeleton className="h-8 w-12 mb-1" /><Skeleton className="h-4 w-20" /></CardContent></Card>
+            ))
+          ) : statusSummary ? (
+            <>
+              <StatCard icon={FileText} label="Total Applied" value={statusSummary.total} color="text-blue-500" />
+              <StatCard icon={Clock} label="Pending" value={statusSummary.pending} color="text-orange-500" />
+              <StatCard icon={CheckCircle2} label="Accepted" value={statusSummary.accepted} color="text-green-500" />
+              <StatCard icon={XCircle} label="Rejected" value={statusSummary.rejected} color="text-red-500" />
+            </>
+          ) : null}
         </div>
-      ) : summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total Applied" value={summary.total} icon={Briefcase} color="bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400" />
-          <StatCard label="Pending Review" value={summary.pending} icon={Clock} color="bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400" />
-          <StatCard label="Accepted" value={summary.accepted} icon={CheckCircle} color="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400" />
-          <StatCard label="Reviewed" value={summary.reviewed} icon={TrendingUp} color="bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400" />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}><CardContent className="p-5"><Skeleton className="h-8 w-12 mb-1" /><Skeleton className="h-4 w-20" /></CardContent></Card>
+            ))
+          ) : (
+            <>
+              <StatCard icon={Briefcase} label="Active Jobs" value={myJobs.length} color="text-blue-500" />
+              <StatCard icon={FileText} label="Applications" value={recentApps.length} color="text-purple-500" />
+              <StatCard icon={Star} label="Reviews" value={receivedReviews.length} color="text-yellow-500" />
+            </>
+          )}
         </div>
       )}
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <Link to="/jobs" className="card-hover p-6 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary-600 flex items-center justify-center flex-shrink-0">
-            <Search className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <div className="font-semibold font-display text-slate-900 dark:text-white">Browse Jobs</div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">Find your next opportunity</div>
-          </div>
-        </Link>
-        <Link to="/my-applications" className="card-hover p-6 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <Briefcase className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <div className="font-semibold font-display text-slate-900 dark:text-white">My Applications</div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">Track your applications</div>
-          </div>
-        </Link>
-      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent activity */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-base">{isSeeker ? 'Recent Applications' : 'Recent Applications Received'}</CardTitle>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={isSeeker ? '/applications' : '/my-jobs'}>View all</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
+            ) : (isSeeker ? recentApplications : recentApps).length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No applications yet</p>
+            ) : (
+              <div className="divide-y">
+                {(isSeeker ? recentApplications : recentApps).map(app => (
+                  <div key={app.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{app.job_title}</p>
+                      <p className="text-xs text-muted-foreground">{isSeeker ? app.job_company : app.applicant_name} · {timeAgo(app.applied_at)}</p>
+                    </div>
+                    <Badge variant={STATUS_CONFIG[app.status]?.variant || 'secondary'} className="shrink-0 ml-2">
+                      {STATUS_CONFIG[app.status]?.label || app.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Recent jobs */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold font-display text-slate-900 dark:text-white">Latest Jobs</h2>
-          <Link to="/jobs" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">View all</Link>
-        </div>
-        {isLoading ? (
-          <LoadingSpinner className="py-8" />
+        {/* Secondary card */}
+        {isSeeker ? (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base">My Reviews</CardTitle>
+              <Button variant="ghost" size="sm" asChild><Link to="/reviews">View all</Link></Button>
+            </CardHeader>
+            <CardContent>
+              {loading ? <div className="space-y-3">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+                : myReviews.length === 0 ? (
+                  <div className="text-center py-8 space-y-2">
+                    <p className="text-sm text-muted-foreground">No reviews yet</p>
+                    <Button variant="outline" size="sm" asChild><Link to="/applications">Write a review</Link></Button>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {myReviews.map(r => (
+                      <div key={r.id} className="py-3 first:pt-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{r.job_title}</p>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star key={i} className={`h-3 w-3 ${i < r.rating ? 'text-yellow-500 fill-yellow-500' : 'text-muted'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{r.recruiter_name} · {timeAgo(r.created_at)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </CardContent>
+          </Card>
         ) : (
-          <div className="space-y-3">
-            {recentJobs.map((job) => (
-              <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-950/50 dark:to-indigo-950/50 flex items-center justify-center flex-shrink-0">
-                  <Briefcase className="h-4.5 w-4.5 text-primary-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">{job.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{job.company_name} · {job.location}</p>
-                </div>
-                <span className="text-xs text-slate-400 flex-shrink-0">{formatRelativeDate(job.created_at)}</span>
-              </Link>
-            ))}
-          </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base">My Job Listings</CardTitle>
+              <Button variant="ghost" size="sm" asChild><Link to="/my-jobs">View all</Link></Button>
+            </CardHeader>
+            <CardContent>
+              {loading ? <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                : myJobs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground mb-3">No jobs posted yet</p>
+                    <Button asChild size="sm"><Link to="/jobs/post">Post a Job</Link></Button>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {myJobs.slice(0, 5).map(job => (
+                      <Link key={job.id} to={`/jobs/${job.id}/applications`} className="flex items-center justify-between py-3 first:pt-0 hover:text-primary transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{job.title}</p>
+                          <p className="text-xs text-muted-foreground">{timeAgo(job.created_at)}</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
   )
 }
 
-function RecruiterDashboard() {
-  const { user } = useAuth()
-  const [summary, setSummary] = useState<StatusSummary | null>(null)
-  const [myJobs, setMyJobs] = useState<JobListItem[]>([])
-  const [reviews, setReviews] = useState<ReviewListItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    Promise.all([
-      applicationsApi.statusSummary(),
-      jobsApi.myJobs(),
-      reviewsApi.myReceivedReviews(),
-    ])
-      .then(([sumRes, jobsRes, reviewsRes]) => {
-        setSummary(sumRes.data)
-        setMyJobs(jobsRes.data.slice(0, 5))
-        setReviews(reviewsRes.data.slice(0, 3))
-      })
-      .finally(() => setIsLoading(false))
-  }, [])
-
-  const avgRating = reviews.length
-    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-    : '—'
-
+function StatCard({ icon: Icon, label, value, color }: { icon: typeof FileText; label: string; value: number; color: string }) {
   return (
-    <div className="section-container py-8">
-      <div className="mb-8">
-        <h1 className="page-title">Welcome, {user?.full_name.split(' ')[0]}! 👋</h1>
-        <p className="page-subtitle">Here's your recruiting activity overview</p>
-      </div>
-
-      {/* Stats */}
-      {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-2">
+          <Icon className={`h-5 w-5 ${color}`} />
         </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total Applicants" value={summary?.total || 0} icon={Users} color="bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400" />
-          <StatCard label="Pending Review" value={summary?.pending || 0} icon={Clock} color="bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400" />
-          <StatCard label="Accepted" value={summary?.accepted || 0} icon={CheckCircle} color="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400" />
-          <StatCard label="Avg. Rating" value={avgRating} icon={Star} color="bg-yellow-50 dark:bg-yellow-950/50 text-yellow-600 dark:text-yellow-400" />
-        </div>
-      )}
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <Link to="/post-job" className="card-hover p-6 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary-600 flex items-center justify-center flex-shrink-0">
-            <Plus className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <div className="font-semibold font-display text-slate-900 dark:text-white">Post a Job</div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">Find your next hire</div>
-          </div>
-        </Link>
-        <Link to="/job-applications" className="card-hover p-6 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <Users className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <div className="font-semibold font-display text-slate-900 dark:text-white">Review Applications</div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">Manage candidates</div>
-          </div>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* My jobs */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold font-display text-slate-900 dark:text-white">My Jobs</h2>
-            <Link to="/my-jobs" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">View all</Link>
-          </div>
-          {isLoading ? (
-            <LoadingSpinner className="py-8" />
-          ) : myJobs.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm">No jobs posted yet</p>
-              <Link to="/post-job" className="btn-primary mt-3 text-sm"><Plus className="h-3.5 w-3.5" />Post a Job</Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {myJobs.map((job) => (
-                <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-950/50 dark:to-indigo-950/50 flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="h-4 w-4 text-primary-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{job.title}</p>
-                    <p className="text-xs text-slate-400">{formatRelativeDate(job.created_at)}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent reviews */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold font-display text-slate-900 dark:text-white">Recent Reviews</h2>
-          </div>
-          {isLoading ? (
-            <LoadingSpinner className="py-8" />
-          ) : reviews.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm">No reviews yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {reviews.map((r) => (
-                <div key={r.id} className="border-b border-slate-100 dark:border-slate-700/50 pb-3 last:border-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{r.reviewer_name}</span>
-                    <div className="flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{r.job_title} · {formatRelativeDate(r.created_at)}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+        <p className="text-2xl font-bold font-display">{value}</p>
+        <p className="text-xs text-muted-foreground mt-1">{label}</p>
+      </CardContent>
+    </Card>
   )
-}
-
-export default function DashboardPage() {
-  const { user } = useAuth()
-  if (user?.role === 'recruiter') return <RecruiterDashboard />
-  return <SeekerDashboard />
 }

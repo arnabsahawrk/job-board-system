@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { jobsApi } from "@/api/jobs";
+import { reviewsApi } from "@/api/reviews";
+import { JobCard } from "@/components/common/JobCard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/AuthContext";
+import type { JobListItem, TopRecruiter } from "@/types";
 import {
   ArrowRight,
-  Briefcase,
-  CheckCircle,
+  BookOpen,
+  Building,
+  CheckCircle2,
   Code2,
-  DollarSign,
-  GraduationCap,
+  Globe,
   Heart,
-  LineChart,
-  Megaphone,
   Palette,
   Search,
   Shield,
@@ -17,346 +22,511 @@ import {
   TrendingUp,
   Users,
   Zap,
-} from 'lucide-react'
-import { jobsApi } from '../api/jobs'
-import { reviewsApi } from '../api/reviews'
-import type { JobListItem, TopRecruiter } from '../types'
-import JobCard from '../components/common/JobCard'
-import { JobCardSkeleton } from '../components/common/SkeletonCard'
-import { JOB_CATEGORY_LABELS, formatDate } from '../utils/helpers'
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+// ─── Static data ─────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { key: 'it', label: 'Technology', icon: Code2, color: 'from-blue-500 to-cyan-500', count: '2,400+' },
-  { key: 'healthcare', label: 'Healthcare', icon: Heart, color: 'from-rose-500 to-pink-500', count: '1,200+' },
-  { key: 'finance', label: 'Finance', icon: DollarSign, color: 'from-emerald-500 to-teal-500', count: '890+' },
-  { key: 'education', label: 'Education', icon: GraduationCap, color: 'from-amber-500 to-orange-500', count: '640+' },
-  { key: 'marketing', label: 'Marketing', icon: Megaphone, color: 'from-violet-500 to-purple-500', count: '750+' },
-  { key: 'design', label: 'Design', icon: Palette, color: 'from-fuchsia-500 to-pink-500', count: '480+' },
-]
+  {
+    label: "Technology",
+    value: "it",
+    icon: Code2,
+    cls: "bg-blue-50   text-blue-600   dark:bg-blue-950/60  dark:text-blue-400",
+  },
+  {
+    label: "Healthcare",
+    value: "healthcare",
+    icon: Heart,
+    cls: "bg-rose-50   text-rose-600   dark:bg-rose-950/60  dark:text-rose-400",
+  },
+  {
+    label: "Finance",
+    value: "finance",
+    icon: TrendingUp,
+    cls: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
+  },
+  {
+    label: "Education",
+    value: "education",
+    icon: BookOpen,
+    cls: "bg-amber-50  text-amber-600  dark:bg-amber-950/60 dark:text-amber-400",
+  },
+  {
+    label: "Marketing",
+    value: "marketing",
+    icon: Globe,
+    cls: "bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400",
+  },
+  {
+    label: "Design",
+    value: "design",
+    icon: Palette,
+    cls: "bg-pink-50   text-pink-600   dark:bg-pink-950/60  dark:text-pink-400",
+  },
+  {
+    label: "Business",
+    value: "other",
+    icon: Building,
+    cls: "bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400",
+  },
+];
+
+const POPULAR_FILTERS = [
+  { label: "Remote", params: "?job_type=remote" },
+  { label: "Full-time", params: "?job_type=full_time" },
+  { label: "Tech", params: "?category=it" },
+  { label: "Design", params: "?category=design" },
+  { label: "Finance", params: "?category=finance" },
+];
+
+const HOW_IT_WORKS = [
+  {
+    step: "01",
+    title: "Create your profile",
+    desc: "Sign up and build a profile that showcases your skills and experience.",
+  },
+  {
+    step: "02",
+    title: "Discover openings",
+    desc: "Explore listings across every industry, filtered to what matters to you.",
+  },
+  {
+    step: "03",
+    title: "Apply in seconds",
+    desc: "Submit your application with your saved resume and cover letter.",
+  },
+  {
+    step: "04",
+    title: "Get hired",
+    desc: "Track your applications and connect with top employers in Bangladesh.",
+  },
+];
 
 const FEATURES = [
-  { icon: Zap, title: 'Apply in Seconds', desc: 'Upload your resume once and apply to any job with a single click.' },
-  { icon: Shield, title: 'Verified Companies', desc: 'All companies are vetted and verified before posting jobs on Jobly.' },
-  { icon: TrendingUp, title: 'Career Insights', desc: 'Track your application status in real-time with detailed analytics.' },
-  { icon: Users, title: 'Recruiter Network', desc: 'Connect directly with top recruiters from world-class companies.' },
-]
+  {
+    icon: Zap,
+    title: "Real-time listings",
+    desc: "Jobs updated the moment they're posted by verified employers.",
+  },
+  {
+    icon: Shield,
+    title: "Verified employers",
+    desc: "Every recruiter account is reviewed before posting.",
+  },
+  {
+    icon: Star,
+    title: "Employer ratings",
+    desc: "Honest reviews from past applicants before you apply.",
+  },
+  {
+    icon: CheckCircle2,
+    title: "Application tracker",
+    desc: "See every status change — from pending to offer.",
+  },
+];
 
-const STEPS = [
-  { num: '01', title: 'Create your profile', desc: 'Build a compelling profile with your skills, experience, and resume.' },
-  { num: '02', title: 'Discover opportunities', desc: 'Browse thousands of curated job listings matching your expertise.' },
-  { num: '03', title: 'Apply & connect', desc: 'Submit tailored applications and connect directly with hiring managers.' },
-  { num: '04', title: 'Land your dream role', desc: 'Receive offers and start your next chapter with confidence.' },
-]
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [featuredJobs, setFeaturedJobs] = useState<JobListItem[]>([])
-  const [topRecruiters, setTopRecruiters] = useState<TopRecruiter[]>([])
-  const [jobsLoading, setJobsLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
+  const { user } = useAuth();
+  const [query, setQuery] = useState("");
+  const [latestJobs, setLatestJobs] = useState<JobListItem[]>([]);
+  const [topRecruiters, setTopRecruiters] = useState<TopRecruiter[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [jobsRes, recruitersRes] = await Promise.all([
-          jobsApi.list({ page_size: 6 }),
-          reviewsApi.topRecruiters(6),
-        ])
-        setFeaturedJobs(jobsRes.data.results)
-        setTopRecruiters(recruitersRes.data)
-      } catch {
-        // silent fail on homepage
-      } finally {
-        setJobsLoading(false)
-      }
-    }
-    fetchData()
-  }, [])
+    Promise.all([
+      jobsApi.list({ page_size: 6, ordering: "-created_at" }),
+      reviewsApi.topRecruiters(3),
+    ])
+      .then(([jobsRes, recruitersRes]) => {
+        setLatestJobs(jobsRes.data.results);
+        setTopRecruiters(recruitersRes.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingJobs(false));
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(`/jobs${query ? `?search=${encodeURIComponent(query)}` : ""}`);
+  };
 
   return (
-    <div className="overflow-x-hidden">
-      {/* ─── Hero ──────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[90vh] flex items-center bg-gradient-to-br from-slate-50 via-white to-primary-50/40 dark:from-surface-950 dark:via-surface-900 dark:to-primary-950/20 overflow-hidden">
-        {/* Background grid */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-50" />
-        {/* Glow blobs */}
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary-400/10 dark:bg-primary-600/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-400/10 dark:bg-indigo-600/10 blur-3xl" />
+    <div className="flex flex-col">
+      {/* ─── Hero ────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden border-b border-border/40 bg-gradient-to-b from-primary/[0.06] via-background to-background">
+        {/* Subtle grid decoration */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+          style={{
+            backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)`,
+            backgroundSize: "32px 32px",
+          }}
+        />
 
-        <div className="section-container relative z-10 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 dark:bg-primary-950/50 border border-primary-100 dark:border-primary-800/50 text-primary-700 dark:text-primary-300 text-sm font-medium mb-8 animate-fade-in">
-              <span className="h-2 w-2 rounded-full bg-primary-500 animate-pulse" />
-              10,000+ active job listings
+        <div className="container relative py-20 md:py-28 lg:py-36">
+          <div className="mx-auto max-w-2xl text-center">
+            {/* Eyebrow badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary mb-6 animate-fade-in">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              Hiring platform & beyond
             </div>
 
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold font-display text-slate-900 dark:text-white leading-tight animate-slide-up">
-              Find Your{' '}
-              <span className="text-gradient">Dream Career</span>
-              <br />
-              with Jobly
+            {/* Heading */}
+            <h1
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-5 animate-slide-up"
+              style={{ animationDelay: "60ms" }}
+            >
+              Find the job you <span className="gradient-text">deserve</span>
             </h1>
 
-            <p className="mt-6 text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              Connect with top companies, discover opportunities tailored to your skills, and take the next step in your professional journey.
+            {/* Sub-copy */}
+            <p
+              className="text-base sm:text-lg text-muted-foreground mb-8 max-w-lg mx-auto leading-relaxed animate-slide-up"
+              style={{ animationDelay: "100ms" }}
+            >
+              Curated listings from verified employers. Apply in seconds, track every step — all in
+              one place.
             </p>
 
-            {/* Search bar */}
-            <div className="mt-10 flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            {/* Search */}
+            <form
+              onSubmit={handleSearch}
+              className="flex flex-col sm:flex-row gap-2.5 max-w-lg mx-auto animate-slide-up"
+              style={{ animationDelay: "140ms" }}
+            >
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Job title, keyword, or company..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      window.location.href = `/jobs?search=${encodeURIComponent(searchQuery)}`
-                    }
-                  }}
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm text-base"
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Job title, skill, or keyword…"
+                  className="pl-10 h-11 shadow-sm"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
-              <Link
-                to={searchQuery ? `/jobs?search=${encodeURIComponent(searchQuery)}` : '/jobs'}
-                className="btn-primary px-8 py-4 text-base rounded-2xl"
-              >
-                Search Jobs
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </div>
+              <Button type="submit" size="lg" className="h-11 px-6 shadow-sm shrink-0">
+                Search
+              </Button>
+            </form>
 
-            {/* Quick links */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <span className="text-sm text-slate-400">Popular:</span>
-              {['Remote', 'Full-time', 'Tech', 'Design', 'Finance'].map((tag) => (
+            {/* Popular pills */}
+            <div
+              className="mt-5 flex flex-wrap items-center justify-center gap-2 animate-fade-in"
+              style={{ animationDelay: "200ms" }}
+            >
+              <span className="text-xs text-muted-foreground font-medium">Popular:</span>
+              {POPULAR_FILTERS.map((f) => (
                 <Link
-                  key={tag}
-                  to={`/jobs?search=${tag.toLowerCase()}`}
-                  className="px-3 py-1 rounded-full text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                  key={f.label}
+                  to={`/jobs${f.params}`}
+                  className="inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all"
                 >
-                  {tag}
+                  {f.label}
                 </Link>
               ))}
             </div>
-
-            {/* Stats */}
-            <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              {[
-                { num: '10K+', label: 'Active Jobs' },
-                { num: '5K+', label: 'Companies' },
-                { num: '50K+', label: 'Hires Made' },
-              ].map(({ num, label }) => (
-                <div key={label} className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold font-display text-slate-900 dark:text-white">{num}</div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{label}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Categories ────────────────────────────────────────────────── */}
-      <section className="py-20 bg-white dark:bg-surface-950">
-        <div className="section-container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 dark:text-white">
-              Browse by Category
-            </h2>
-            <p className="mt-3 text-slate-500 dark:text-slate-400">
-              Explore opportunities across industries
-            </p>
+      {/* ─── Categories ──────────────────────────────────────────────────── */}
+      <section className="py-16 md:py-20">
+        <div className="container">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">Browse by industry</h2>
+            <p className="text-sm text-muted-foreground">Find roles across every sector</p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {CATEGORIES.map(({ key, label, icon: Icon, color, count }) => (
-              <Link
-                key={key}
-                to={`/jobs?category=${key}`}
-                className="group card-hover p-5 text-center cursor-pointer"
-              >
-                <div className={`mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform duration-200`}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-                <div className="font-semibold text-sm text-slate-800 dark:text-slate-200 font-display">{label}</div>
-                <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{count} jobs</div>
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <Link
+                  key={cat.value}
+                  to={`/jobs?category=${cat.value}`}
+                  className="group flex flex-col items-center gap-2.5 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all duration-200"
+                >
+                  <div
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${cat.cls} transition-transform duration-200 group-hover:scale-110`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-medium text-center leading-snug text-foreground/80 group-hover:text-primary transition-colors">
+                    {cat.label}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ─── Featured Jobs ─────────────────────────────────────────────── */}
-      <section className="py-20 bg-slate-50/50 dark:bg-surface-900/50">
-        <div className="section-container">
-          <div className="flex items-center justify-between mb-10">
+      {/* ─── Latest jobs ─────────────────────────────────────────────────── */}
+      <section className="py-16 md:py-20 bg-muted/30 border-y border-border/40">
+        <div className="container">
+          <div className="flex items-end justify-between mb-8">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 dark:text-white">
-                Latest Opportunities
-              </h2>
-              <p className="mt-2 text-slate-500 dark:text-slate-400">Fresh jobs posted recently</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-1">Latest openings</h2>
+              <p className="text-sm text-muted-foreground">Freshly posted by verified employers</p>
             </div>
-            <Link to="/jobs" className="btn-outline hidden sm:flex">
-              View All Jobs
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="hidden sm:flex gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <Link to="/jobs">
+                View all <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </div>
 
-          {jobsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => <JobCardSkeleton key={i} />)}
-            </div>
-          ) : featuredJobs.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {featuredJobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+          {loadingJobs ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-5 space-y-3">
+                    <div className="flex gap-3">
+                      <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
+            </div>
+          ) : latestJobs.length === 0 ? (
+            <div className="text-center py-16 text-sm text-muted-foreground">
+              No jobs posted yet — check back soon!
             </div>
           ) : (
-            <div className="text-center py-12 text-slate-400">No jobs available at the moment.</div>
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {latestJobs.map((job, i) => (
+                  <div
+                    key={job.id}
+                    className="animate-slide-up min-w-0"
+                    style={{ animationDelay: `${i * 40}ms` }}
+                  >
+                    <JobCard job={job} />
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="mt-8 text-center sm:hidden">
-            <Link to="/jobs" className="btn-outline">
-              View All Jobs <ArrowRight className="h-4 w-4" />
-            </Link>
+            <Button variant="outline" asChild>
+              <Link to="/jobs">
+                View all jobs <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* ─── How it Works ──────────────────────────────────────────────── */}
-      <section className="py-20 bg-white dark:bg-surface-950">
-        <div className="section-container">
+      {/* ─── How it works ───────────────────────────────────────────── */}
+      <section className="py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 dark:text-white">
-              Your Journey to Success
-            </h2>
-            <p className="mt-3 text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
-              Four simple steps to land the job you've always wanted
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How Jobly Works</h2>
+            <p className="mt-3 text-muted-foreground text-sm md:text-base">
+              A simple path to your next opportunity
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {STEPS.map(({ num, title, desc }, i) => (
-              <div key={num} className="relative">
-                {i < STEPS.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[60%] w-full h-px bg-gradient-to-r from-primary-300 to-transparent dark:from-primary-800" />
-                )}
-                <div className="flex flex-col items-center text-center">
-                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold font-mono shadow-glow mb-5">
-                    {num}
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {HOW_IT_WORKS.map((item, i) => (
+              <div
+                key={i}
+                className="group rounded-2xl border border-border/60 bg-background p-6 transition-all hover:shadow-md hover:-translate-y-1"
+              >
+                {/* Step Circle */}
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary font-semibold mb-5 text-sm">
+                  {item.step}
+                </div>
+
+                <h3 className="font-semibold text-base mb-2">{item.title}</h3>
+
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Features ────────────────────────────────────────────────────── */}
+      <section className="py-16 md:py-20 bg-muted/30 border-y border-border/40">
+        <div className="container">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">Why choose Jobly</h2>
+            <p className="text-sm text-muted-foreground">Everything you need, nothing you don't</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {FEATURES.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={i}
+                  className="bg-background rounded-xl border border-border p-5 hover:border-primary/30 hover:shadow-sm transition-all duration-200"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 mb-4">
+                    <Icon
+                      className="h-4.5 w-4.5 text-primary"
+                      style={{ height: "18px", width: "18px" }}
+                    />
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white font-display mb-2">{title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{desc}</p>
+                  <h3 className="font-semibold text-sm mb-1">{f.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ─── Features ──────────────────────────────────────────────────── */}
-      <section className="py-20 bg-gradient-to-br from-primary-600 to-indigo-700 relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-        <div className="section-container relative z-10">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold font-display text-white">
-              Why Choose Jobly?
-            </h2>
-            <p className="mt-3 text-primary-100 max-w-xl mx-auto">
-              Everything you need to accelerate your career
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-colors">
-                <div className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center mb-4">
-                  <Icon className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="font-semibold text-white font-display mb-2">{title}</h3>
-                <p className="text-sm text-primary-100 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Top Recruiters ────────────────────────────────────────────── */}
+      {/* ─── Top Recruiters ──────────────────────────────────────────────── */}
       {topRecruiters.length > 0 && (
-        <section className="py-20 bg-white dark:bg-surface-950">
-          <div className="section-container">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 dark:text-white">
-                Top-Rated Recruiters
-              </h2>
-              <p className="mt-3 text-slate-500 dark:text-slate-400">
-                Hiring professionals with exceptional candidate reviews
+        <section className="py-16 md:py-20">
+          <div className="container">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">Top-rated employers</h2>
+              <p className="text-sm text-muted-foreground">
+                Recruiters with the highest community ratings
               </p>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {topRecruiters.map((recruiter) => (
-                <div key={recruiter.recruiter} className="card-hover p-5">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-bold font-display text-lg flex-shrink-0">
-                      {recruiter.recruiter__full_name.charAt(0).toUpperCase()}
+            <div className="grid sm:grid-cols-3 gap-5 max-w-xl mx-auto">
+              {topRecruiters.map((r, i) => (
+                <Card key={i} className="text-center hover:border-primary/30 transition-colors">
+                  <CardContent className="pt-6 pb-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto mb-3">
+                      <Users className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-slate-900 dark:text-white truncate font-display">
-                        {recruiter.recruiter__full_name}
-                      </h3>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <div className="flex">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-3.5 w-3.5 ${i < Math.round(recruiter.avg_rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-300 dark:text-slate-600'}`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {recruiter.avg_rating.toFixed(1)} ({recruiter.review_count})
-                        </span>
-                      </div>
+                    <p className="font-semibold text-sm mb-1 truncate">{r.recruiter__full_name}</p>
+                    <div className="flex items-center justify-center gap-1 text-amber-500 mb-1">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                      <span className="text-sm font-semibold">
+                        {Number(r.avg_rating).toFixed(1)}
+                      </span>
                     </div>
-                  </div>
-                </div>
+                    <p className="text-xs text-muted-foreground">
+                      {r.review_count} review{r.review_count !== 1 ? "s" : ""}
+                    </p>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* ─── CTA ──────────────────────────────────────────────────────── */}
-      <section className="py-20 bg-slate-50 dark:bg-surface-900">
-        <div className="section-container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-4xl sm:text-5xl font-bold font-display text-slate-900 dark:text-white mb-6">
-              Ready to take the<br />
-              <span className="text-gradient">next big step?</span>
-            </h2>
-            <p className="text-lg text-slate-500 dark:text-slate-400 mb-10">
-              Join thousands of professionals who found their dream jobs through Jobly. Your future starts here.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/register" className="btn-primary px-8 py-4 text-base rounded-2xl justify-center">
-                Get Started Free
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-              <Link to="/jobs" className="btn-outline px-8 py-4 text-base rounded-2xl justify-center">
-                Browse Jobs
-              </Link>
+      {/* ─── CTA ───────────────────────────────────────────────────── */}
+      <section className="py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-3xl bg-primary px-8 py-16 text-center shadow-lg">
+            {/* subtle overlay */}
+            <div
+              aria-hidden
+              className="absolute inset-0 opacity-5"
+              style={{
+                backgroundImage: "radial-gradient(circle at 20% 20%, white 1px, transparent 1px)",
+                backgroundSize: "22px 22px",
+              }}
+            />
+
+            <div className="relative max-w-2xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+                Take the next step in your career
+              </h2>
+
+              <p className="text-primary-foreground/80 text-sm md:text-base mb-10">
+                Discover verified opportunities across Bangladesh and grow professionally with
+                Jobly.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                {/* Not Logged In */}
+                {!user && (
+                  <>
+                    <Button
+                      size="lg"
+                      className="bg-background text-primary hover:bg-background/90 font-semibold shadow-sm"
+                      asChild
+                    >
+                      <Link to="/register">Create Free Account</Link>
+                    </Button>
+
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
+                      asChild
+                    >
+                      <Link to="/jobs">Browse Jobs</Link>
+                    </Button>
+                  </>
+                )}
+
+                {/* Logged In – Seeker */}
+                {user?.role === "seeker" && (
+                  <>
+                    <Button
+                      size="lg"
+                      className="bg-background text-primary hover:bg-background/90 font-semibold shadow-sm"
+                      asChild
+                    >
+                      <Link to="/jobs">Browse Jobs</Link>
+                    </Button>
+
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
+                      asChild
+                    >
+                      <Link to="/applications">View Applications</Link>
+                    </Button>
+                  </>
+                )}
+
+                {/* Logged In – Recruiter */}
+                {user?.role === "recruiter" && (
+                  <>
+                    <Button
+                      size="lg"
+                      className="bg-background text-primary hover:bg-background/90 font-semibold shadow-sm"
+                      asChild
+                    >
+                      <Link to="/jobs/post">Post a Job</Link>
+                    </Button>
+
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
+                      asChild
+                    >
+                      <Link to="/dashboard">Go to Dashboard</Link>
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
-            <p className="mt-6 text-sm text-slate-400 flex items-center justify-center gap-2">
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-              No credit card required · Free to join
-            </p>
           </div>
         </div>
       </section>
     </div>
-  )
+  );
 }
