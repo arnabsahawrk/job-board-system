@@ -1,32 +1,35 @@
-import { useEffect, useState } from 'react'
-import type { Theme } from '../types'
+import { useEffect, useState, useCallback } from 'react'
+import type { Theme } from '@/types'
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
     return (localStorage.getItem('theme') as Theme) || 'system'
   })
 
-  useEffect(() => {
+  const applyTheme = useCallback((t: Theme) => {
     const root = document.documentElement
-    const isDark =
-      theme === 'dark' ||
-      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-
-    root.classList.toggle('dark', isDark)
-    localStorage.setItem('theme', theme)
-  }, [theme])
+    root.classList.remove('light', 'dark')
+    if (t === 'system') {
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      root.classList.add(systemDark ? 'dark' : 'light')
+    } else {
+      root.classList.add(t)
+    }
+  }, [])
 
   useEffect(() => {
-    if (theme !== 'system') return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => {
-      document.documentElement.classList.toggle('dark', e.matches)
-    }
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [theme])
+    applyTheme(theme)
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => { if (theme === 'system') applyTheme('system') }
+    media.addEventListener('change', handler)
+    return () => media.removeEventListener('change', handler)
+  }, [theme, applyTheme])
 
-  const setTheme = (t: Theme) => setThemeState(t)
+  const setTheme = useCallback((t: Theme) => {
+    localStorage.setItem('theme', t)
+    setThemeState(t)
+    applyTheme(t)
+  }, [applyTheme])
 
   return { theme, setTheme }
 }
