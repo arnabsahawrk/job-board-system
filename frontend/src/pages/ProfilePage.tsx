@@ -157,7 +157,7 @@ export default function ProfilePage() {
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{user?.full_name}</p>
                     <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-                    <span className="inline-block text-[11px] font-medium uppercase tracking-wide text-primary bg-primary/10 rounded px-1.5 py-0.5 mt-1.5 capitalize">
+                    <span className="inline-block text-[11px] font-medium uppercase tracking-wide text-primary bg-primary/10 rounded px-1.5 py-0.5 mt-1.5">
                       {user?.role}
                     </span>
                   </div>
