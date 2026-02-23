@@ -2,8 +2,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatSalary, timeAgo } from "@/lib/utils";
 import type { JobListItem } from "@/types";
-import { Building2, Clock, MapPin } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CompanyLogoFallback } from "@/components/branding/Brand";
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   full_time: "Full-time",
@@ -48,7 +49,7 @@ export function JobCard({ job, className }: JobCardProps) {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <CompanyLogoFallback className="h-7 w-7" />
               )}
             </div>
 
