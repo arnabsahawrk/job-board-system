@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { EmptyState } from '@/components/common/EmptyState'
 import { applicationsApi } from '@/api/applications'
-import type { ApplicationListItem, ApplicationDetail, User as UserType } from '@/types'
+import type { ApplicationListItem, ApplicationDetail, ApplicationStatus, User as UserType } from '@/types'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import { extractErrorMessage } from '@/lib/utils'
@@ -33,8 +33,9 @@ export default function JobApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationListItem[]>([])
   const [filtered, setFiltered] = useState<ApplicationListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const [selectedApp, setSelectedApp] = useState<ApplicationDetail | null>(null)
   const [applicantProfile, setApplicantProfile] = useState<UserType | null>(null)
@@ -48,8 +49,12 @@ export default function JobApplicationsPage() {
   useEffect(() => {
     const jobId = id ? parseInt(id) : undefined
     applicationsApi.jobApplications(jobId)
-      .then(res => { setApplications(res.data); setFiltered(res.data) })
-      .catch(() => {})
+      .then(res => {
+        setErrorMessage(null)
+        setApplications(res.data)
+        setFiltered(res.data)
+      })
+      .catch((err) => setErrorMessage(extractErrorMessage(err)))
       .finally(() => setLoading(false))
   }, [id])
 
@@ -59,7 +64,7 @@ export default function JobApplicationsPage() {
       const q = searchQuery.toLowerCase()
       result = result.filter(a => a.applicant_name.toLowerCase().includes(q) || a.applicant_email.toLowerCase().includes(q))
     }
-    if (statusFilter) result = result.filter(a => a.status === statusFilter)
+    if (statusFilter !== 'all') result = result.filter(a => a.status === statusFilter)
     setFiltered(result)
   }, [searchQuery, statusFilter, applications])
 
@@ -76,6 +81,7 @@ export default function JobApplicationsPage() {
       setSelectedApp(detailRes.data)
       setApplicantProfile(profileRes.data)
       setStatusUpdate(detailRes.data.status)
+      setFeedbackText('')
     } catch (err) {
       toast.error(extractErrorMessage(err))
       setDetailOpen(false)
@@ -86,9 +92,21 @@ export default function JobApplicationsPage() {
 
   const handleUpdateStatus = async () => {
     if (!selectedApp) return
+    const trimmedFeedback = feedbackText.trim()
+    if (statusUpdate === selectedApp.status && !trimmedFeedback) {
+      toast.error('No changes to save.')
+      return
+    }
     setUpdating(true)
     try {
-      await applicationsApi.updateStatus(selectedApp.id, statusUpdate, feedbackText)
+      if (trimmedFeedback) {
+        await applicationsApi.updateStatusWithFeedback(selectedApp.id, {
+          status: statusUpdate as ApplicationStatus,
+          feedback_text: trimmedFeedback,
+        })
+      } else {
+        await applicationsApi.update(selectedApp.id, { status: statusUpdate as ApplicationStatus })
+      }
       toast.success('Application status updated')
       setApplications(prev => prev.map(a => a.id === selectedApp.id ? { ...a, status: statusUpdate as ApplicationListItem['status'] } : a))
       setDetailOpen(false)
@@ -121,7 +139,7 @@ export default function JobApplicationsPage() {
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40"><SelectValue placeholder="All Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="_all">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -129,6 +147,13 @@ export default function JobApplicationsPage() {
 
       {loading ? (
         <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+      ) : errorMessage ? (
+        <Card className="border-destructive/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-destructive">{errorMessage}</p>
+            <Button size="sm" variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+          </CardContent>
+        </Card>
       ) : filtered.length === 0 ? (
         <EmptyState icon={User} title="No applications found" description="No applicants match your filter criteria." />
       ) : (
