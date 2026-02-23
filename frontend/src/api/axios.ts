@@ -1,6 +1,21 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://arnabsahawrk-jobly-backend.vercel.app/api'
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://arnabsahawrk-jobly-backend.vercel.app/api').replace(/\/+$/, '')
+
+const REFRESH_EXCLUDED_PATHS = [
+  '/auth/login/',
+  '/auth/register/',
+  '/auth/verify_email/',
+  '/auth/resend_verification/',
+  '/auth/request_password_reset/',
+  '/auth/confirm_password_reset/',
+  '/auth/refresh_token/',
+]
+
+function shouldSkipRefresh(url?: string): boolean {
+  if (!url) return false
+  return REFRESH_EXCLUDED_PATHS.some((path) => url.includes(path))
+}
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -37,7 +52,7 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh(originalRequest.url)) {
       const refreshToken = localStorage.getItem('refresh_token')
 
       // No refresh token means guest user — just reject, don't redirect.
