@@ -15,29 +15,46 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+function getStoredUser(): User | null {
+  try {
+    const stored = localStorage.getItem('user')
+    return stored ? (JSON.parse(stored) as User) : null
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const stored = localStorage.getItem('user')
-      return stored ? JSON.parse(stored) : null
-    } catch { return null }
-  })
+  const [user, setUserState] = useState<User | null>(() => getStoredUser())
   const [isLoading, setIsLoading] = useState(true)
 
+  const setUser = useCallback((nextUser: User | null) => {
+    setUserState(nextUser)
+    if (nextUser) {
+      localStorage.setItem('user', JSON.stringify(nextUser))
+      return
+    }
+    localStorage.removeItem('user')
+  }, [])
+
   const refreshUser = useCallback(async () => {
-    const token = localStorage.getItem('access_token')
-    if (!token) { setUser(null); setIsLoading(false); return }
+    const accessToken = localStorage.getItem('access_token')
+    const refreshToken = localStorage.getItem('refresh_token')
+    if (!accessToken && !refreshToken) {
+      setUser(null)
+      setIsLoading(false)
+      return
+    }
     try {
       const { data } = await authApi.getProfile()
       setUser(data)
-      localStorage.setItem('user', JSON.stringify(data))
     } catch {
       clearTokens()
       setUser(null)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [setUser])
 
   useEffect(() => { refreshUser() }, [refreshUser])
 
@@ -45,8 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = await authApi.login({ email, password })
     setTokens(data.access, data.refresh)
     setUser(data.user)
-    localStorage.setItem('user', JSON.stringify(data.user))
-  }, [])
+  }, [setUser])
 
   const logout = useCallback(async () => {
     try { await authApi.logout() } catch { /* ignore */ }
@@ -54,11 +70,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTokens()
       setUser(null)
     }
-  }, [])
+  }, [setUser])
 
   const value = useMemo(
     () => ({ user, isAuthenticated: !!user, isLoading, login, logout, refreshUser, setUser }),
-    [user, isLoading, login, logout, refreshUser]
+    [user, isLoading, login, logout, refreshUser, setUser]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
