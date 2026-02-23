@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PlusCircle, Edit, Users, Trash2, Building2, Loader2, Briefcase } from 'lucide-react'
+import { PlusCircle, Edit, Users, Trash2, Loader2, Briefcase } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { jobsApi } from '@/api/jobs'
 import type { JobListItem } from '@/types'
 import { extractErrorMessage, timeAgo, formatSalary } from '@/lib/utils'
 import { toast } from 'sonner'
+import { CompanyLogoFallback } from '@/components/branding/Brand'
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   full_time: 'Full-time', part_time: 'Part-time', remote: 'Remote', contract: 'Contract', internship: 'Internship',
@@ -19,13 +20,17 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 export default function MyJobsPage() {
   const [jobs, setJobs] = useState<JobListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     jobsApi.myJobs()
-      .then(res => setJobs(res.data))
-      .catch(() => {})
+      .then(res => {
+        setErrorMessage(null)
+        setJobs(res.data)
+      })
+      .catch((err) => setErrorMessage(extractErrorMessage(err)))
       .finally(() => setLoading(false))
   }, [])
 
@@ -56,6 +61,13 @@ export default function MyJobsPage() {
 
       {loading ? (
         <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}</div>
+      ) : errorMessage ? (
+        <Card className="border-destructive/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-destructive">{errorMessage}</p>
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button>
+          </CardContent>
+        </Card>
       ) : jobs.length === 0 ? (
         <EmptyState
           icon={Briefcase}
@@ -73,7 +85,7 @@ export default function MyJobsPage() {
                     {job.company_logo ? (
                       <img src={job.company_logo} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <Building2 className="h-5 w-5 text-muted-foreground" />
+                      <CompanyLogoFallback className="h-7 w-7" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -124,4 +136,3 @@ export default function MyJobsPage() {
     </div>
   )
 }
-
