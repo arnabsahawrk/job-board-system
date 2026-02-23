@@ -35,7 +35,8 @@ export const reviewsApi = {
   topRecruiters: (limit?: number) =>
     api.get<TopRecruiter[]>('/reviews/top_recruiters/', { params: { limit } }),
 
-  toggleHelpful: (id: number) => api.post(`/reviews/${id}/helpful/`),
+  toggleHelpful: (id: number) =>
+    api.post<{ message: string; helpful_count: number }>(`/reviews/${id}/helpful/`),
 
   helpfulVotes: (id: number) =>
     api.get<{ review_id: number; helpful_count: number; is_helpful_by_current_user: boolean }>(
