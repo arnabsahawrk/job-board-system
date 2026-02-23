@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Loader2, CheckCircle2, XCircle, Mail } from 'lucide-react'
@@ -119,9 +119,12 @@ export function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const hasRequestedRef = useRef(false)
 
   useEffect(() => {
     if (!token) { setStatus('error'); return }
+    if (hasRequestedRef.current) return
+    hasRequestedRef.current = true
     authApi.verifyEmail(token)
       .then(() => setStatus('success'))
       .catch(() => setStatus('error'))
