@@ -101,7 +101,7 @@ export interface ApplicationListItem {
 
 export interface ApplicationDetail {
   id: number
-  job: JobDetail
+  job: JobListItem
   applicant_name: string
   applicant_email: string
   applicant_phone: string | null
@@ -127,6 +127,17 @@ export interface ApplicationFeedback {
   updated_at: string
 }
 
+export interface ApplicationStatusUpdateResponse {
+  message: string
+  application: ApplicationDetail
+  feedback: {
+    id: number
+    feedback_text: string
+    status_given: ApplicationStatus
+    created_at: string
+  }
+}
+
 export interface StatusSummary {
   total: number
   pending: number
@@ -146,6 +157,7 @@ export interface ReviewListItem {
   reviewer_name: string
   reviewer_email: string
   rating: number
+  comment?: string | null
   created_at: string
 }
 
