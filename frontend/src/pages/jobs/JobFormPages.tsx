@@ -135,7 +135,8 @@ function JobForm({ defaultValues, onSubmit, isLoading, isEdit }: {
           <div className="space-y-1.5">
             <Label htmlFor="requirements">Requirements</Label>
             <Textarea id="requirements" placeholder="List skills, qualifications, and experience required..." className="min-h-[100px]"
-              {...register('requirements')} />
+              {...register('requirements', { required: 'Requirements are required' })} />
+            {errors.requirements && <p className="text-xs text-destructive">{errors.requirements.message}</p>}
           </div>
         </CardContent>
       </Card>
@@ -269,9 +270,4 @@ export function EditJobPage() {
       <JobForm defaultValues={defaults} onSubmit={handleSubmit} isEdit />
     </div>
   )
-}
-
-interface JobFormFields {
-  title: string; description: string; requirements: string; location: string; job_type: string;
-  category: string; company_name: string; salary: string; experience_required: string; position_count: string; application_deadline: string;
 }
