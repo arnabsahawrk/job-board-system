@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, ExternalLink, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
+import { FileText, ExternalLink, MessageSquare, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,15 +23,19 @@ const STATUS_CONFIG = {
 export default function MyApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<ApplicationFeedback | null>(null)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [loadingFeedback, setLoadingFeedback] = useState(false)
-  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   useEffect(() => {
     applicationsApi.myApplications()
-      .then(res => setApplications(res.data))
-      .catch(() => {})
+      .then(res => {
+        setErrorMessage(null)
+        setApplications(res.data)
+      })
+      .catch((err) => setErrorMessage(extractErrorMessage(err)))
       .finally(() => setLoading(false))
   }, [])
 
@@ -46,6 +50,19 @@ export default function MyApplicationsPage() {
       setFeedbackOpen(false)
     } finally {
       setLoadingFeedback(false)
+    }
+  }
+
+  const deleteApplication = async (id: number) => {
+    setDeletingId(id)
+    try {
+      await applicationsApi.delete(id)
+      setApplications((prev) => prev.filter((application) => application.id !== id))
+      toast.success('Application removed')
+    } catch (err) {
+      toast.error(extractErrorMessage(err))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -83,6 +100,13 @@ export default function MyApplicationsPage() {
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
         </div>
+      ) : errorMessage ? (
+        <Card className="border-destructive/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-destructive">{errorMessage}</p>
+            <Button size="sm" variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+          </CardContent>
+        </Card>
       ) : applications.length === 0 ? (
         <EmptyState
           icon={FileText}
@@ -94,7 +118,6 @@ export default function MyApplicationsPage() {
         <div className="space-y-3">
           {applications.map(app => {
             const cfg = STATUS_CONFIG[app.status] || STATUS_CONFIG.pending
-            const isExpanded = expandedId === app.id
             return (
               <Card key={app.id} className={app.status === 'accepted' ? 'border-green-500/50 bg-green-50/30 dark:bg-green-900/10' : ''}>
                 <CardContent className="p-4">
@@ -120,6 +143,26 @@ export default function MyApplicationsPage() {
                       </Button>
                       <Button variant="ghost" size="sm" asChild>
                         <Link to={`/jobs/${app.job}`}><ExternalLink className="h-3 w-3 mr-1" /> View Job</Link>
+                      </Button>
+                    </div>
+                  )}
+                  {(app.status === 'pending' || app.status === 'reviewed') && (
+                    <div className="mt-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        disabled={deletingId === app.id}
+                        onClick={() => deleteApplication(app.id)}
+                      >
+                        {deletingId === app.id ? (
+                          'Removing...'
+                        ) : (
+                          <>
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Withdraw
+                          </>
+                        )}
                       </Button>
                     </div>
                   )}
