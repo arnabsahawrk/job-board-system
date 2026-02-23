@@ -1,4 +1,3 @@
-import { jobsApi } from "@/api/jobs";
 import { reviewsApi } from "@/api/reviews";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,19 +129,17 @@ export default function HomePage() {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [topRecruiters, setTopRecruiters] = useState<TopRecruiter[]>([]);
-  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [loadingRecruiters, setLoadingRecruiters] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([
-      jobsApi.list({ page_size: 6, ordering: "-created_at" }),
-      reviewsApi.topRecruiters(3),
-    ])
-      .then(([jobsRes, recruitersRes]) => {
+    reviewsApi
+      .topRecruiters(3)
+      .then((recruitersRes) => {
         setTopRecruiters(recruitersRes.data);
       })
       .catch(() => {})
-      .finally(() => setLoadingJobs(false));
+      .finally(() => setLoadingRecruiters(false));
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -323,7 +320,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Top Recruiters ──────────────────────────────────────────────── */}
-      {topRecruiters.length > 0 && (
+      {(loadingRecruiters || topRecruiters.length > 0) && (
         <section className="py-16 md:py-20">
           <div className="container">
             <div className="text-center mb-10">
@@ -333,25 +330,35 @@ export default function HomePage() {
               </p>
             </div>
             <div className="grid sm:grid-cols-3 gap-5 max-w-xl mx-auto">
-              {topRecruiters.map((r, i) => (
-                <Card key={i} className="text-center hover:border-primary/30 transition-colors">
-                  <CardContent className="pt-6 pb-5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto mb-3">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <p className="font-semibold text-sm mb-1 truncate">{r.recruiter__full_name}</p>
-                    <div className="flex items-center justify-center gap-1 text-amber-500 mb-1">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      <span className="text-sm font-semibold">
-                        {Number(r.avg_rating).toFixed(1)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {r.review_count} review{r.review_count !== 1 ? "s" : ""}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+              {loadingRecruiters
+                ? Array.from({ length: 3 }).map((_, index) => (
+                    <Card key={index} className="text-center">
+                      <CardContent className="pt-6 pb-5 space-y-2">
+                        <div className="mx-auto h-12 w-12 rounded-full bg-muted animate-pulse" />
+                        <div className="h-4 w-3/4 mx-auto rounded bg-muted animate-pulse" />
+                        <div className="h-3 w-1/2 mx-auto rounded bg-muted animate-pulse" />
+                      </CardContent>
+                    </Card>
+                  ))
+                : topRecruiters.map((r, i) => (
+                    <Card key={i} className="text-center hover:border-primary/30 transition-colors">
+                      <CardContent className="pt-6 pb-5">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto mb-3">
+                          <Users className="h-5 w-5 text-primary" />
+                        </div>
+                        <p className="font-semibold text-sm mb-1 truncate">{r.recruiter__full_name}</p>
+                        <div className="flex items-center justify-center gap-1 text-amber-500 mb-1">
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                          <span className="text-sm font-semibold">
+                            {Number(r.avg_rating).toFixed(1)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {r.review_count} review{r.review_count !== 1 ? "s" : ""}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
             </div>
           </div>
         </section>
