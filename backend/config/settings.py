@@ -193,8 +193,11 @@ SSLCOMMERZ_SANDBOX_MODE = os.environ.get("SSLCOMMERZ_SANDBOX_MODE", "True") == "
 # This is where SSLCOMMERZ will send payment status callbacks
 BACKEND_URL = os.environ.get("BACKEND_URL")
 
+IS_VERCEL = os.environ.get("VERCEL") == "1"
+
 LOG_DIR = BASE_DIR / "logs"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+if not IS_VERCEL:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     "version": 1,
@@ -222,7 +225,7 @@ LOGGING = {
     },
     "loggers": {
         "apps.payments": {
-            "handlers": ["payments_file", "console"],
+            "handlers": ["console"] if IS_VERCEL else ["payments_file", "console"],
             "level": "INFO",
             "propagate": False,
         },
