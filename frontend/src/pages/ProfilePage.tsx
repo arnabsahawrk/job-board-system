@@ -20,7 +20,6 @@ interface ProfileFormData {
   bio: string
   skills: string
   experience: string
-  experience_years: string
 }
 
 interface PasswordFormData {
@@ -62,7 +61,6 @@ export default function ProfilePage() {
       bio:             user.profile?.bio || '',
       skills:          user.profile?.skills || '',
       experience:      user.profile?.experience || '',
-      experience_years: String(user.profile?.experience_years ?? ''),
     })
     if (user.profile?.avatar) setAvatarPreview(user.profile.avatar)
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -80,16 +78,17 @@ export default function ProfilePage() {
     try {
       const formData = new FormData()
       formData.append('full_name', data.full_name)
-      if (data.phone_number)    formData.append('phone_number', data.phone_number)
-      if (data.bio)             formData.append('bio', data.bio)
-      if (data.skills)          formData.append('skills', data.skills)
-      if (data.experience)      formData.append('experience', data.experience)
-      if (data.experience_years) formData.append('experience_years', data.experience_years)
-      if (avatarFile)           formData.append('avatar', avatarFile)
-      if (resumeFile)           formData.append('resume', resumeFile)
+      formData.append('profile.phone_number', data.phone_number || '')
+      formData.append('profile.bio', data.bio || '')
+      formData.append('profile.skills', data.skills || '')
+      formData.append('profile.experience', data.experience || '')
+      if (avatarFile) formData.append('profile.avatar', avatarFile)
+      if (resumeFile) formData.append('profile.resume', resumeFile)
 
       await authApi.updateProfile(formData)
       await refreshUser()
+      if (avatarFile) setAvatarFile(null)
+      if (resumeFile) setResumeFile(null)
       toast.success('Profile updated')
     } catch (err) {
       toast.error(extractErrorMessage(err))
@@ -208,23 +207,20 @@ export default function ProfilePage() {
                     />
                   </FormField>
 
-                  <FormField id="experience_years" label="Years of Experience">
+                  <FormField id="experience_years" label="Calculated Experience">
                     <Input
                       id="experience_years"
-                      type="number"
-                      min="0"
-                      max="50"
-                      placeholder="e.g. 3"
+                      type="text"
                       className="w-28"
-                      {...profileForm.register('experience_years')}
+                      value={`${user.profile?.experience_years ?? 0} yrs`}
+                      readOnly
                     />
                   </FormField>
 
-                  <FormField id="experience" label="Experience Summary">
-                    <Textarea
+                  <FormField id="experience" label="Experience Start Date">
+                    <Input
                       id="experience"
-                      placeholder="Briefly describe your professional background…"
-                      className="min-h-[80px] resize-none"
+                      type="date"
                       {...profileForm.register('experience')}
                     />
                   </FormField>
@@ -257,7 +253,7 @@ export default function ProfilePage() {
                         onChange={e => setResumeFile(e.target.files?.[0] || null)}
                       />
                     </label>
-                    <p className="text-xs text-muted-foreground">PDF or Word, max 1 MB</p>
+                    <p className="text-xs text-muted-foreground">PDF or Word, max 5 MB</p>
                   </div>
                 </CardContent>
               </Card>
