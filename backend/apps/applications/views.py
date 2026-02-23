@@ -14,7 +14,7 @@ from apps.applications.serializers import (
 )
 from apps.authentication.serializers import UserDetailSerializer
 from apps.applications.serializers import ApplicationFeedbackSerializer
-from apps.core.services import Services
+from apps.core.services import Services, EmailServices
 
 
 class ApplicationViewSet(viewsets.ModelViewSet):
@@ -73,10 +73,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
         # Send email notifications
         # 1. Email to job seeker confirming application
-        Services.send_application_received_email(application)
+        EmailServices.send_application_received_email(application)
 
         # 2. Email to recruiter notifying of new application
-        Services.send_new_application_notification_email(application)
+        EmailServices.send_new_application_notification_email(application)
 
         return Response(
             ApplicationDetailSerializer(application).data,
@@ -202,12 +202,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
         # Send appropriate email notification based on status
         if status_value == "accepted":
-            Services.send_application_accepted_email(application)
+            EmailServices.send_application_accepted_email(application)
         elif status_value == "rejected":
-            Services.send_application_rejected_email(application, feedback_text)
+            EmailServices.send_application_rejected_email(application, feedback_text)
         else:
             # For pending and reviewed statuses
-            Services.send_application_status_update_email(application, feedback_text)
+            EmailServices.send_application_status_update_email(application, feedback_text)
 
         return Response(
             {

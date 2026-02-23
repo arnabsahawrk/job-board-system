@@ -146,7 +146,7 @@ function JobForm({ defaultValues, onSubmit, isLoading, isEdit }: {
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="salary">Annual Salary (USD)</Label>
+              <Label htmlFor="salary">Monthly Salary (Taka)</Label>
               <Input id="salary" type="number" placeholder="e.g. 80000" {...register('salary')} />
             </div>
             <div className="space-y-1.5">
@@ -167,7 +167,7 @@ function JobForm({ defaultValues, onSubmit, isLoading, isEdit }: {
 
       {/* Company Logo */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Company Logo</CardTitle><CardDescription>Optional. PNG or JPG, max 2MB.</CardDescription></CardHeader>
+        <CardHeader><CardTitle className="text-base">Company Logo</CardTitle><CardDescription>Optional. PNG or JPG, max 1 MB.</CardDescription></CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
             {logoPreview && (
