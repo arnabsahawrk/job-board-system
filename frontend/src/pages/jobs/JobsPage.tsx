@@ -17,6 +17,7 @@ import type { JobListItem } from "@/types";
 import { Building2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { extractErrorMessage } from "@/lib/utils";
 
 const CATEGORIES = [
   { label: "All Categories", value: "" },
@@ -52,6 +53,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const search = searchParams.get("search") || "";
   const category = searchParams.get("category") || "";
@@ -66,6 +68,7 @@ export default function JobsPage() {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
+      setErrorMessage(null);
       const { data } = await jobsApi.list({
         page,
         page_size: PAGE_SIZE,
@@ -77,8 +80,10 @@ export default function JobsPage() {
       });
       setJobs(data.results);
       setCount(data.count);
-    } catch {
-      /* ignore */
+    } catch (err) {
+      setErrorMessage(extractErrorMessage(err));
+      setJobs([]);
+      setCount(0);
     } finally {
       setLoading(false);
     }
@@ -250,6 +255,17 @@ export default function JobsPage() {
       )}
 
       {/* Results grid */}
+      {errorMessage && !loading && (
+        <Card className="mb-4 border-destructive/40">
+          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-destructive">{errorMessage}</p>
+            <Button variant="outline" size="sm" onClick={fetchJobs}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 9 }).map((_, i) => (
@@ -283,15 +299,13 @@ export default function JobsPage() {
         />
       ) : (
         <>
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {jobs.map((job) => (
-                <div key={job.id} className="min-w-0">
-                  <JobCard job={job} />
-                </div>
-              ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {jobs.map((job) => (
+              <div key={job.id} className="min-w-0">
+                <JobCard job={job} />
+              </div>
+            ))}
             </div>
-          </div>
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 mt-10">
