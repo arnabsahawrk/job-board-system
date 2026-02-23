@@ -1,20 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Star, Edit, Trash2, Loader2, ThumbsUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EmptyState } from '@/components/common/EmptyState'
 import { reviewsApi } from '@/api/reviews'
+import { applicationsApi } from '@/api/applications'
 import { useAuth } from '@/context/AuthContext'
 import { extractErrorMessage, timeAgo } from '@/lib/utils'
 import { toast } from 'sonner'
-import type { ReviewListItem } from '@/types'
+import type { ApplicationListItem, ReviewListItem } from '@/types'
 
 function StarRating({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) {
   const [hovered, setHovered] = useState(0)
@@ -44,7 +45,15 @@ export default function ReviewsPage() {
   const { user } = useAuth()
   const isSeeker = user?.role === 'seeker'
   const [reviews, setReviews] = useState<ReviewListItem[]>([])
+  const [reviewableApplications, setReviewableApplications] = useState<ApplicationListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createJobId, setCreateJobId] = useState('')
+  const [createRating, setCreateRating] = useState(5)
+  const [createComment, setCreateComment] = useState('')
+  const [creating, setCreating] = useState(false)
 
   const [editOpen, setEditOpen] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -55,22 +64,57 @@ export default function ReviewsPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     setLoading(true)
     try {
+      setLoadError(null)
       const res = isSeeker ? await reviewsApi.myReviews() : await reviewsApi.myReceivedReviews()
       setReviews(res.data)
-    } catch { /* ignore */ }
+    } catch (err) {
+      setLoadError(extractErrorMessage(err))
+    }
     finally { setLoading(false) }
-  }
+  }, [isSeeker])
 
-  useEffect(() => { fetchReviews() }, [isSeeker])
+  const fetchReviewableApplications = useCallback(async () => {
+    if (!isSeeker) return
+    try {
+      const [appsRes, myReviewsRes] = await Promise.all([
+        applicationsApi.myApplications(),
+        reviewsApi.myReviews(),
+      ])
+      const reviewedJobIds = new Set(myReviewsRes.data.map((review) => review.job))
+      const available = appsRes.data.filter((app) => !reviewedJobIds.has(app.job))
+      setReviewableApplications(available)
+      if (!createJobId && available.length > 0) {
+        setCreateJobId(String(available[0].job))
+      }
+      if (available.length === 0) {
+        setCreateJobId('')
+      }
+    } catch {
+      setReviewableApplications([])
+    }
+  }, [createJobId, isSeeker])
 
-  const openEdit = (review: ReviewListItem & { comment?: string }) => {
-    setEditId(review.id)
-    setEditRating(review.rating)
-    setEditComment(review.comment || '')
-    setEditOpen(true)
+  useEffect(() => {
+    fetchReviews()
+  }, [fetchReviews])
+
+  useEffect(() => {
+    fetchReviewableApplications()
+  }, [fetchReviewableApplications])
+
+  const openEdit = async (reviewId: number) => {
+    try {
+      const { data } = await reviewsApi.get(reviewId)
+      setEditId(data.id)
+      setEditRating(data.rating)
+      setEditComment(data.comment || '')
+      setEditOpen(true)
+    } catch (err) {
+      toast.error(extractErrorMessage(err))
+    }
   }
 
   const handleSave = async () => {
@@ -80,11 +124,35 @@ export default function ReviewsPage() {
       await reviewsApi.update(editId, { rating: editRating, comment: editComment })
       toast.success('Review updated')
       setEditOpen(false)
-      fetchReviews()
+      await fetchReviews()
     } catch (err) {
       toast.error(extractErrorMessage(err))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!createJobId) {
+      toast.error('Select a job to review.')
+      return
+    }
+    setCreating(true)
+    try {
+      await reviewsApi.create({
+        job_id: Number(createJobId),
+        rating: createRating,
+        comment: createComment.trim() || undefined,
+      })
+      toast.success('Review submitted')
+      setCreateOpen(false)
+      setCreateComment('')
+      setCreateRating(5)
+      await Promise.all([fetchReviews(), fetchReviewableApplications()])
+    } catch (err) {
+      toast.error(extractErrorMessage(err))
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -105,8 +173,8 @@ export default function ReviewsPage() {
 
   const handleHelpful = async (id: number) => {
     try {
-      await reviewsApi.toggleHelpful(id)
-      toast.success('Marked as helpful')
+      const { data } = await reviewsApi.toggleHelpful(id)
+      toast.success(data.message)
     } catch (err) {
       toast.error(extractErrorMessage(err))
     }
@@ -117,13 +185,29 @@ export default function ReviewsPage() {
   return (
     <div className="container py-8 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold font-display">
-          {isSeeker ? 'My Reviews' : 'Reviews Received'}
-        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h1 className="text-2xl font-bold font-display">
+            {isSeeker ? 'My Reviews' : 'Reviews Received'}
+          </h1>
+          {isSeeker && (
+            <Button onClick={() => setCreateOpen(true)} disabled={reviewableApplications.length === 0}>
+              Write Review
+            </Button>
+          )}
+        </div>
         <p className="text-muted-foreground text-sm mt-1">
           {isSeeker ? 'Reviews you\'ve written about employers' : 'What applicants say about your postings'}
         </p>
       </div>
+
+      {loadError && !loading && (
+        <Card className="mb-6 border-destructive/40">
+          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-destructive">{loadError}</p>
+            <Button size="sm" variant="outline" onClick={fetchReviews}>Retry</Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary */}
       {!loading && reviews.length > 0 && avgRating && (
@@ -162,7 +246,15 @@ export default function ReviewsPage() {
           icon={Star}
           title={isSeeker ? 'No reviews yet' : 'No reviews received'}
           description={isSeeker ? 'Write reviews for employers after your applications are processed.' : 'Reviews will appear here once applicants submit them.'}
-          action={isSeeker ? <Button asChild variant="outline"><Link to="/applications">View Applications</Link></Button> : undefined}
+          action={
+            isSeeker
+              ? (
+                reviewableApplications.length > 0
+                  ? <Button onClick={() => setCreateOpen(true)}>Write Review</Button>
+                  : <Button asChild variant="outline"><Link to="/applications">View Applications</Link></Button>
+              )
+              : undefined
+          }
         />
       ) : (
         <div className="space-y-4">
@@ -190,7 +282,7 @@ export default function ReviewsPage() {
                   )}
                   {isSeeker && (
                     <>
-                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(review as ReviewListItem & { comment?: string })}>
+                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEdit(review.id)}>
                         <Edit className="h-3.5 w-3.5 mr-1" />Edit
                       </Button>
                       <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setDeleteId(review.id)}>
@@ -204,6 +296,49 @@ export default function ReviewsPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Write a Review</DialogTitle></DialogHeader>
+          {reviewableApplications.length === 0 ? (
+            <p className="text-sm text-muted-foreground">You have no reviewable applications right now.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Job</Label>
+                <Select value={createJobId} onValueChange={setCreateJobId}>
+                  <SelectTrigger><SelectValue placeholder="Select a job" /></SelectTrigger>
+                  <SelectContent>
+                    {reviewableApplications.map((app) => (
+                      <SelectItem key={app.id} value={String(app.job)}>
+                        {app.job_title} - {app.job_company}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Rating</Label>
+                <StarRating value={createRating} onChange={setCreateRating} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Comment (optional)</Label>
+                <Textarea
+                  value={createComment}
+                  onChange={(e) => setCreateComment(e.target.value)}
+                  placeholder="Share your experience with this employer..."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={creating || reviewableApplications.length === 0}>
+              {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Submit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
