@@ -1,0 +1,293 @@
+[
+  {
+    "model": "reviews.review",
+    "pk": 1,
+    "fields": {
+      "job": 1,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440100",
+      "rating": 5,
+      "comment": "Excellent experience! Jane was professional, responsive, and made the entire interview process smooth. She explained the role clearly and answered all my questions. The company culture seems amazing based on our interactions. Highly recommended!",
+      "created_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 2,
+    "fields": {
+      "job": 2,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440101",
+      "rating": 4,
+      "comment": "Great recruiter to work with. Jane was organized and kept me informed throughout the process. The only minor issue was some delayed communication during the final stages, but overall a very professional experience.",
+      "created_at": "2026-02-20T14:30:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 3,
+    "fields": {
+      "job": 3,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440102",
+      "rating": 5,
+      "comment": "Bob was exceptional! He understood exactly what I was looking for in a role and found a perfect match. The interview process was fair and transparent. He provided valuable feedback after each stage. Definitely hiring through him again!",
+      "created_at": "2026-02-21T09:15:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 4,
+    "fields": {
+      "job": 4,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440100",
+      "rating": 3,
+      "comment": "Average experience. Bob was helpful, but communication could have been better. There were some delays in getting feedback, and the interview process took longer than expected. Decent overall, but room for improvement.",
+      "created_at": "2026-02-19T11:20:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 5,
+    "fields": {
+      "job": 5,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440002",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440100",
+      "rating": 4,
+      "comment": "Alice handled the interview process professionally. The role description was accurate, and the interview was well-structured. Would have appreciated more frequent updates, but overall satisfied with the experience.",
+      "created_at": "2026-02-21T13:45:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 6,
+    "fields": {
+      "job": 6,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440002",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440101",
+      "rating": 5,
+      "comment": "Outstanding recruiter! Alice was empathetic, professional, and genuinely interested in finding the right fit. She provided constructive feedback and was very responsive. The interview was comprehensive and fair. Highly recommended!",
+      "created_at": "2026-02-20T16:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 7,
+    "fields": {
+      "job": 7,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440103",
+      "rating": 4,
+      "comment": "Jane was great to work with. The interview process was smooth and well-organized. She provided useful insights about the company culture. Minor delay in final offer communication, but otherwise excellent.",
+      "created_at": "2026-02-19T10:30:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 8,
+    "fields": {
+      "job": 8,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440104",
+      "rating": 5,
+      "comment": "Excellent experience from start to finish! Bob was supportive, transparent, and really understood the teaching profession. He explained the school's mission clearly and answered all my questions about benefits and growth opportunities.",
+      "created_at": "2026-02-21T08:45:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 9,
+    "fields": {
+      "job": 9,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440101",
+      "rating": 5,
+      "comment": "Jane is fantastic! She's a true professional who cares about making good matches. She was patient, responsive, and really helped me through the interview process. The entire experience was positive and encouraging.",
+      "created_at": "2026-02-20T15:15:00Z"
+    }
+  },
+  {
+    "model": "reviews.review",
+    "pk": 10,
+    "fields": {
+      "job": 10,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "reviewer": "550e8400-e29b-41d4-a716-446655440103",
+      "rating": 5,
+      "comment": "Great recruiting experience! Bob was knowledgeable about the data science field and really helped me understand the role and company. The interview process was fair, the feedback was constructive, and the overall experience was professional.",
+      "created_at": "2026-02-21T12:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 1,
+    "fields": {
+      "review": 1,
+      "user": "550e8400-e29b-41d4-a716-446655440101",
+      "created_at": "2026-02-21T10:30:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 2,
+    "fields": {
+      "review": 1,
+      "user": "550e8400-e29b-41d4-a716-446655440102",
+      "created_at": "2026-02-21T10:45:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 3,
+    "fields": {
+      "review": 1,
+      "user": "550e8400-e29b-41d4-a716-446655440103",
+      "created_at": "2026-02-21T11:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 4,
+    "fields": {
+      "review": 2,
+      "user": "550e8400-e29b-41d4-a716-446655440100",
+      "created_at": "2026-02-20T15:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 5,
+    "fields": {
+      "review": 2,
+      "user": "550e8400-e29b-41d4-a716-446655440103",
+      "created_at": "2026-02-20T15:15:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 6,
+    "fields": {
+      "review": 3,
+      "user": "550e8400-e29b-41d4-a716-446655440100",
+      "created_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 7,
+    "fields": {
+      "review": 3,
+      "user": "550e8400-e29b-41d4-a716-446655440101",
+      "created_at": "2026-02-21T10:15:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 8,
+    "fields": {
+      "review": 3,
+      "user": "550e8400-e29b-41d4-a716-446655440104",
+      "created_at": "2026-02-21T10:30:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 9,
+    "fields": {
+      "review": 5,
+      "user": "550e8400-e29b-41d4-a716-446655440101",
+      "created_at": "2026-02-21T14:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 10,
+    "fields": {
+      "review": 6,
+      "user": "550e8400-e29b-41d4-a716-446655440100",
+      "created_at": "2026-02-20T16:30:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 11,
+    "fields": {
+      "review": 6,
+      "user": "550e8400-e29b-41d4-a716-446655440102",
+      "created_at": "2026-02-20T16:45:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 12,
+    "fields": {
+      "review": 7,
+      "user": "550e8400-e29b-41d4-a716-446655440101",
+      "created_at": "2026-02-19T11:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 13,
+    "fields": {
+      "review": 8,
+      "user": "550e8400-e29b-41d4-a716-446655440100",
+      "created_at": "2026-02-21T09:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 14,
+    "fields": {
+      "review": 8,
+      "user": "550e8400-e29b-41d4-a716-446655440103",
+      "created_at": "2026-02-21T09:15:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 15,
+    "fields": {
+      "review": 9,
+      "user": "550e8400-e29b-41d4-a716-446655440100",
+      "created_at": "2026-02-20T15:45:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 16,
+    "fields": {
+      "review": 9,
+      "user": "550e8400-e29b-41d4-a716-446655440102",
+      "created_at": "2026-02-20T16:00:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 17,
+    "fields": {
+      "review": 9,
+      "user": "550e8400-e29b-41d4-a716-446655440104",
+      "created_at": "2026-02-20T16:15:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 18,
+    "fields": {
+      "review": 10,
+      "user": "550e8400-e29b-41d4-a716-446655440100",
+      "created_at": "2026-02-21T12:30:00Z"
+    }
+  },
+  {
+    "model": "reviews.reviewhelpful",
+    "pk": 19,
+    "fields": {
+      "review": 10,
+      "user": "550e8400-e29b-41d4-a716-446655440102",
+      "created_at": "2026-02-21T12:45:00Z"
+    }
+  }
+]

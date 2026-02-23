@@ -1,0 +1,193 @@
+[
+  {
+    "model": "applications.application",
+    "pk": 1,
+    "fields": {
+      "job": 1,
+      "applicant": "550e8400-e29b-41d4-a716-446655440100",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/john_django_dev_resume.pdf",
+      "cover_letter": "I am very excited to apply for the Senior Django Developer position. With 6+ years of Django experience and a strong background in building scalable APIs, I believe I'm a perfect fit for your team. I have successfully led several projects from conception to production, mentoring junior developers along the way.",
+      "status": "accepted",
+      "applied_at": "2026-02-15T09:30:00Z",
+      "updated_at": "2026-02-20T14:00:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 2,
+    "fields": {
+      "job": 1,
+      "applicant": "550e8400-e29b-41d4-a716-446655440102",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/michael_django_dev_resume.pdf",
+      "cover_letter": "I'm interested in the Senior Django Developer role. I have 5 years of experience building Django applications with focus on microservices architecture. I'm particularly interested in this opportunity because of your company's commitment to clean code and best practices.",
+      "status": "reviewed",
+      "applied_at": "2026-02-16T10:15:00Z",
+      "updated_at": "2026-02-19T11:30:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 3,
+    "fields": {
+      "job": 1,
+      "applicant": "550e8400-e29b-41d4-a716-446655440104",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/david_django_dev_resume.pdf",
+      "cover_letter": "I am applying for the Senior Django Developer position. While my background is more Java-focused, I've been learning Django over the past year and have completed several side projects that demonstrate my capabilities.",
+      "status": "rejected",
+      "applied_at": "2026-02-17T13:45:00Z",
+      "updated_at": "2026-02-20T10:00:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 4,
+    "fields": {
+      "job": 2,
+      "applicant": "550e8400-e29b-41d4-a716-446655440101",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/sarah_react_native_resume.pdf",
+      "cover_letter": "I'm excited to apply for the React Native Developer position. I have 4 years of experience building cross-platform mobile applications with React Native. I'm skilled in both iOS and Android development and have shipped multiple apps to the app stores.",
+      "status": "pending",
+      "applied_at": "2026-02-18T08:20:00Z",
+      "updated_at": "2026-02-18T08:20:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 5,
+    "fields": {
+      "job": 2,
+      "applicant": "550e8400-e29b-41d4-a716-446655440103",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/emma_react_native_resume.pdf",
+      "cover_letter": "I'm interested in the React Native Developer position. I have 3 years of experience in React Native development with a focus on performance optimization. I'm passionate about creating smooth and responsive mobile experiences.",
+      "status": "pending",
+      "applied_at": "2026-02-19T14:50:00Z",
+      "updated_at": "2026-02-19T14:50:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 6,
+    "fields": {
+      "job": 3,
+      "applicant": "550e8400-e29b-41d4-a716-446655440102",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/michael_devops_resume.pdf",
+      "cover_letter": "I am applying for the DevOps Engineer position. I have 6 years of experience managing cloud infrastructure on AWS and GCP. I'm proficient with Kubernetes, Docker, and have implemented several CI/CD pipelines. I'm excited about the opportunity to work with your team.",
+      "status": "accepted",
+      "applied_at": "2026-02-14T11:00:00Z",
+      "updated_at": "2026-02-20T15:30:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 7,
+    "fields": {
+      "job": 4,
+      "applicant": "550e8400-e29b-41d4-a716-446655440100",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/john_fullstack_resume.pdf",
+      "cover_letter": "I'm interested in the Full Stack Developer position at your startup. I have 3 years of experience building full-stack web applications using React and Django. I'm excited about working in a fast-paced startup environment and contributing to product development.",
+      "status": "reviewed",
+      "applied_at": "2026-02-19T15:20:00Z",
+      "updated_at": "2026-02-20T12:00:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 8,
+    "fields": {
+      "job": 4,
+      "applicant": "550e8400-e29b-41d4-a716-446655440101",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/sarah_fullstack_resume.pdf",
+      "cover_letter": "I am applying for the Full Stack Developer position. With 5 years of full-stack development experience, I have worked with various tech stacks including MERN, LAMP, and Django+React. I'm particularly interested in startups and would love to be part of your growing team.",
+      "status": "pending",
+      "applied_at": "2026-02-20T09:30:00Z",
+      "updated_at": "2026-02-20T09:30:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 9,
+    "fields": {
+      "job": 5,
+      "applicant": "550e8400-e29b-41d4-a716-446655440100",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/john_financial_analyst_resume.pdf",
+      "cover_letter": "I'm interested in the Financial Analyst position. Although my background is in software engineering, I've developed a strong interest in finance and have been learning financial analysis and modeling. I believe my analytical skills will transfer well to this role.",
+      "status": "rejected",
+      "applied_at": "2026-02-18T13:00:00Z",
+      "updated_at": "2026-02-19T10:30:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 10,
+    "fields": {
+      "job": 9,
+      "applicant": "550e8400-e29b-41d4-a716-446655440101",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/sarah_uxui_resume.pdf",
+      "cover_letter": "I am very excited to apply for the UX/UI Designer position. I have 4 years of experience designing user interfaces for web and mobile applications. I'm skilled with Figma, have conducted extensive user research, and have a strong portfolio of work that demonstrates my design capabilities.",
+      "status": "pending",
+      "applied_at": "2026-02-21T10:15:00Z",
+      "updated_at": "2026-02-21T10:15:00Z"
+    }
+  },
+  {
+    "model": "applications.application",
+    "pk": 11,
+    "fields": {
+      "job": 10,
+      "applicant": "550e8400-e29b-41d4-a716-446655440103",
+      "resume": "https://res.cloudinary.com/demo/document/upload/v1/applications/emma_datascientist_resume.pdf",
+      "cover_letter": "I'm applying for the Data Scientist position. I have a Master's degree in Data Science and 3 years of experience building machine learning models in production. I'm proficient in Python, SQL, and have experience with TensorFlow and scikit-learn. I'm excited about working on impactful data science projects.",
+      "status": "pending",
+      "applied_at": "2026-02-21T11:45:00Z",
+      "updated_at": "2026-02-21T11:45:00Z"
+    }
+  },
+  {
+    "model": "applications.applicationfeedback",
+    "pk": 1,
+    "fields": {
+      "application": 1,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "feedback_text": "Excellent candidate! Your Django experience and architecture knowledge align perfectly with our needs. We were impressed by your mentoring approach and commitment to code quality. We'd like to move forward with the next round of interviews.",
+      "status_given": "accepted",
+      "created_at": "2026-02-20T14:00:00Z",
+      "updated_at": "2026-02-20T14:00:00Z"
+    }
+  },
+  {
+    "model": "applications.applicationfeedback",
+    "pk": 2,
+    "fields": {
+      "application": 3,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "feedback_text": "Thank you for your interest in the Senior Django Developer position. While we appreciate your willingness to learn new technologies, we're looking for someone with more direct Django experience at this time. We encourage you to apply again in the future when you have more hands-on Django experience.",
+      "status_given": "rejected",
+      "created_at": "2026-02-20T10:00:00Z",
+      "updated_at": "2026-02-20T10:00:00Z"
+    }
+  },
+  {
+    "model": "applications.applicationfeedback",
+    "pk": 3,
+    "fields": {
+      "application": 6,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "feedback_text": "Great submission! Your AWS and Kubernetes experience is exactly what we're looking for. Your CI/CD pipeline implementations impressed us. We'd like to schedule a technical interview to discuss your infrastructure design approach.",
+      "status_given": "accepted",
+      "created_at": "2026-02-20T15:30:00Z",
+      "updated_at": "2026-02-20T15:30:00Z"
+    }
+  },
+  {
+    "model": "applications.applicationfeedback",
+    "pk": 4,
+    "fields": {
+      "application": 9,
+      "recruiter": "550e8400-e29b-41d4-a716-446655440002",
+      "feedback_text": "Thank you for your interest in the Financial Analyst position. We're looking for candidates with formal finance background and experience in financial modeling. Your technical background is valuable, but we need someone with more direct finance experience for this role.",
+      "status_given": "rejected",
+      "created_at": "2026-02-19T10:30:00Z",
+      "updated_at": "2026-02-19T10:30:00Z"
+    }
+  }
+]

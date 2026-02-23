@@ -1,0 +1,222 @@
+[
+  {
+    "model": "jobs.job",
+    "pk": 1,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "category": "it",
+      "title": "Senior Django Developer",
+      "description": "We are looking for a highly skilled Senior Django Developer to join our growing team. You will work on scalable web applications with a focus on best practices and clean code architecture.\n\nResponsibilities:\n- Design and develop RESTful APIs\n- Implement database optimizations\n- Mentor junior developers\n- Code review and quality assurance\n\nWhat we offer:\n- Competitive salary package\n- Flexible working hours\n- Remote-first culture\n- Professional development opportunities",
+      "requirements": "5+ years of Django experience\nStrong Python knowledge\nPostgreSQL and Redis expertise\nDocker and CI/CD pipelines\nExcellent communication skills",
+      "location": "New York, NY",
+      "job_type": "remote",
+      "salary": 150000,
+      "experience_required": 5,
+      "position_count": 2,
+      "company_name": "Tech Corp",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/tech_corp_logo.png",
+      "application_deadline": "2026-03-21T23:59:59Z",
+
+      "created_at": "2026-02-10T10:00:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 2,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "category": "it",
+      "title": "React Native Developer",
+      "description": "Join our mobile team to build next-generation mobile applications. We're looking for experienced React Native developers who can ship quality code quickly.\n\nResponsibilities:\n- Develop cross-platform mobile apps\n- Optimize performance for both iOS and Android\n- Collaborate with UI/UX designers\n- Participate in code reviews\n\nWhat we offer:\n- Competitive compensation\n- Health insurance\n- Learning budget\n- Collaborative environment",
+      "requirements": "3+ years React Native experience\nJavaScript/TypeScript proficiency\niOS and Android knowledge\nGit and version control\nAgile methodology experience",
+      "location": "San Francisco, CA",
+      "job_type": "full_time",
+      "salary": 140000,
+      "experience_required": 3,
+      "position_count": 1,
+      "company_name": "Mobile Innovations Inc",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/mobile_innovations_logo.png",
+      "application_deadline": "2026-04-10T23:59:59Z",
+
+      "created_at": "2026-02-08T14:30:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 3,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "category": "it",
+      "title": "DevOps Engineer",
+      "description": "We're hiring a DevOps Engineer to manage and improve our cloud infrastructure. You'll work with Kubernetes, Docker, and AWS to keep our systems running smoothly.\n\nResponsibilities:\n- Design and maintain cloud infrastructure\n- Implement CI/CD pipelines\n- Monitor system performance\n- Implement security best practices\n- On-call rotation support\n\nWhat we offer:\n- Excellent salary package\n- Stock options\n- Unlimited PTO\n- Remote work opportunity",
+      "requirements": "4+ years DevOps experience\nKubernetes and Docker expertise\nAWS or GCP knowledge\nInfrastructure as Code (Terraform, CloudFormation)\nMonitoring and logging tools (Prometheus, ELK)",
+      "location": "Seattle, WA",
+      "job_type": "remote",
+      "salary": 160000,
+      "experience_required": 4,
+      "position_count": 1,
+      "company_name": "Cloud Systems Ltd",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/cloud_systems_logo.png",
+      "application_deadline": "2026-03-15T23:59:59Z",
+
+      "created_at": "2026-02-12T09:15:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 4,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "category": "it",
+      "title": "Full Stack Developer",
+      "description": "Exciting opportunity to work as a Full Stack Developer in a fast-growing startup. Build web applications from frontend to backend using modern technologies.\n\nResponsibilities:\n- Develop full-stack web applications\n- Design database schemas\n- Implement responsive UIs\n- Write tests and documentation\n- Collaborate with product team\n\nWhat we offer:\n- Startup equity\n- Flexible hours\n- Modern tech stack\n- Growth opportunities",
+      "requirements": "2+ years full-stack development\nReact/Vue.js knowledge\nNode.js or Python backend\nDatabase design skills\nVersion control (Git)",
+      "location": "Boston, MA",
+      "job_type": "full_time",
+      "salary": 120000,
+      "experience_required": 2,
+      "position_count": 3,
+      "company_name": "StartUp Innovations",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/startup_innovations_logo.png",
+      "application_deadline": "2026-03-30T23:59:59Z",
+
+      "created_at": "2026-02-09T11:45:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 5,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440002",
+      "category": "finance",
+      "title": "Financial Analyst",
+      "description": "Join our Finance team as a Financial Analyst. Analyze financial data, prepare reports, and support strategic planning. Work with executive leadership on key financial decisions.\n\nResponsibilities:\n- Financial modeling and forecasting\n- Budget preparation and analysis\n- Data analysis and reporting\n- Support strategic planning\n- Regulatory compliance\n\nWhat we offer:\n- Competitive salary\n- Bonus structure\n- Professional certifications support\n- Career development",
+      "requirements": "Bachelor's in Finance or Accounting\n2+ years financial analysis\nExcel and SQL expertise\nUnderstanding of financial statements\nAnalytical and problem-solving skills",
+      "location": "Chicago, IL",
+      "job_type": "full_time",
+      "salary": 95000,
+      "experience_required": 2,
+      "position_count": 1,
+      "company_name": "Global Finance Corp",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/global_finance_logo.png",
+      "application_deadline": "2026-04-05T23:59:59Z",
+
+      "created_at": "2026-02-14T13:20:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 6,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440002",
+      "category": "healthcare",
+      "title": "Registered Nurse",
+      "description": "We're seeking compassionate Registered Nurses to join our hospital team. Provide excellent patient care in a supportive environment with modern medical facilities.\n\nResponsibilities:\n- Patient assessment and monitoring\n- Medication administration\n- Patient education\n- Collaborate with medical teams\n- Maintain accurate records\n\nWhat we offer:\n- Competitive healthcare benefits\n- Shift differentials\n- Continuing education\n- Supportive work environment",
+      "requirements": "RN License (current and valid)\nBSN or ASN\n2+ years clinical experience\nBLS/CPR certification\nExcellent communication skills",
+      "location": "Houston, TX",
+      "job_type": "full_time",
+      "salary": 70000,
+      "experience_required": 2,
+      "position_count": 5,
+      "company_name": "Medical Center Hospital",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/medical_center_logo.png",
+      "application_deadline": "2026-05-01T23:59:59Z",
+
+      "created_at": "2026-02-11T08:30:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 7,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "category": "marketing",
+      "title": "Digital Marketing Manager",
+      "description": "Lead our digital marketing initiatives and drive brand growth. Develop strategies across multiple channels including social media, email, and content marketing.\n\nResponsibilities:\n- Develop marketing strategies\n- Manage social media presence\n- Create content calendar\n- Analyze marketing metrics\n- Budget management\n\nWhat we offer:\n- Competitive salary\n- Performance bonus\n- Flexible work schedule\n- Creative freedom",
+      "requirements": "3+ years digital marketing\nSocial media expertise\nContent marketing knowledge\nData analysis skills\nProficiency in marketing tools (HubSpot, Google Analytics)",
+      "location": "Los Angeles, CA",
+      "job_type": "remote",
+      "salary": 90000,
+      "experience_required": 3,
+      "position_count": 1,
+      "company_name": "Creative Agency Pro",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/creative_agency_logo.png",
+      "application_deadline": "2026-03-25T23:59:59Z",
+
+      "created_at": "2026-02-13T15:45:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 8,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "category": "education",
+      "title": "High School Math Teacher",
+      "description": "Join our faculty as a High School Math Teacher. Inspire students, develop curriculum, and foster a love for mathematics in a supportive school environment.\n\nResponsibilities:\n- Teach algebra and geometry\n- Prepare lesson plans\n- Assess student progress\n- Engage parents\n- Participate in school activities\n\nWhat we offer:\n- Competitive salary\n- Health insurance\n- Pension plan\n- Professional development",
+      "requirements": "Bachelor's degree in Mathematics or Education\nHigh School Teacher Certification\n2+ years teaching experience\nStrong subject knowledge\nPassion for education",
+      "location": "Austin, TX",
+      "job_type": "full_time",
+      "salary": 55000,
+      "experience_required": 2,
+      "position_count": 2,
+      "company_name": "Central High School",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/central_high_logo.png",
+      "application_deadline": "2026-04-30T23:59:59Z",
+
+      "created_at": "2026-02-15T10:00:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 9,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440000",
+      "category": "design",
+      "title": "UX/UI Designer",
+      "description": "We're looking for a talented UX/UI Designer to create beautiful and intuitive digital experiences. Work on web and mobile applications used by millions.\n\nResponsibilities:\n- Design user interfaces\n- Conduct user research\n- Create wireframes and prototypes\n- Collaborate with developers\n- Implement design systems\n\nWhat we offer:\n- Creative environment\n- Modern design tools\n- Competitive salary\n- Remote flexibility",
+      "requirements": "3+ years UX/UI design\nFigma or Adobe XD expertise\nPortfolio with strong examples\nUnderstanding of design principles\nCollaboration skills",
+      "location": "Portland, OR",
+      "job_type": "remote",
+      "salary": 110000,
+      "experience_required": 3,
+      "position_count": 1,
+      "company_name": "Design Studio Co",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/design_studio_logo.png",
+      "application_deadline": "2026-04-15T23:59:59Z",
+
+      "created_at": "2026-02-16T12:30:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  },
+  {
+    "model": "jobs.job",
+    "pk": 10,
+    "fields": {
+      "recruiter": "550e8400-e29b-41d4-a716-446655440001",
+      "category": "it",
+      "title": "Data Scientist",
+      "description": "Join our data science team to solve complex business problems with machine learning and data analytics. Work with cutting-edge technologies and large datasets.\n\nResponsibilities:\n- Develop machine learning models\n- Analyze business data\n- Create data visualizations\n- Collaborate with engineering\n- Present insights to stakeholders\n\nWhat we offer:\n- Competitive compensation\n- Flexible schedule\n- Cutting-edge tools\n- Growth opportunities",
+      "requirements": "Master's in Data Science, Computer Science, or related field\n2+ years data science experience\nPython and SQL proficiency\nMachine learning knowledge\nStatistics expertise",
+      "location": "Mountain View, CA",
+      "job_type": "full_time",
+      "salary": 155000,
+      "experience_required": 2,
+      "position_count": 2,
+      "company_name": "Data Insights Corp",
+      "company_logo": "https://res.cloudinary.com/demo/image/upload/v1/jobs/data_insights_logo.png",
+      "application_deadline": "2026-03-20T23:59:59Z",
+
+      "created_at": "2026-02-17T14:00:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  }
+]
