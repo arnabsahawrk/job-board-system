@@ -3,10 +3,18 @@ import type {
   ApplicationListItem,
   ApplicationDetail,
   ApplicationFeedback,
+  ApplicationStatus,
+  ApplicationStatusUpdateResponse,
   StatusSummary,
   PaginatedResponse,
   User,
 } from '../types'
+
+export interface ApplicationCreatePayload {
+  job_id: number
+  resume: File
+  cover_letter?: string
+}
 
 export const applicationsApi = {
   list: (params?: { page?: number; job?: number; status?: string; search?: string }) =>
@@ -28,8 +36,13 @@ export const applicationsApi = {
       params: jobId ? { job_id: jobId } : undefined,
     }),
 
-  updateStatus: (id: number, status: string, feedback_text: string) =>
-    api.post(`/applications/${id}/update_status/`, { status, feedback_text }),
+  update: (id: number, data: { status: ApplicationStatus }) =>
+    api.patch<ApplicationDetail>(`/applications/${id}/`, data),
+
+  updateStatusWithFeedback: (
+    id: number,
+    data: { status: ApplicationStatus; feedback_text: string }
+  ) => api.post<ApplicationStatusUpdateResponse>(`/applications/${id}/update_status/`, data),
 
   applicantProfile: (id: number) => api.get<User>(`/applications/${id}/applicant_profile/`),
 
