@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
-  MapPin, Briefcase, Users, Calendar, Clock, Building2,
+  MapPin, Briefcase, Users, Calendar, Clock,
   ArrowLeft, Edit, Trash2, Star, FileText, ExternalLink, Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ import { useAuth } from '@/context/AuthContext'
 import { extractErrorMessage, formatSalary, formatDate, timeAgo } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { JobDetail, ReviewListItem } from '@/types'
+import { CompanyLogoFallback } from '@/components/branding/Brand'
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   full_time: 'Full-time', part_time: 'Part-time', remote: 'Remote', contract: 'Contract', internship: 'Internship',
@@ -37,6 +38,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<JobDetail | null>(null)
   const [reviews, setReviews] = useState<ReviewListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [applyOpen, setApplyOpen] = useState(false)
   const [applying, setApplying] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
@@ -50,6 +52,7 @@ export default function JobDetailPage() {
       if (!id) return
       setLoading(true)
       try {
+        setErrorMessage(null)
         const [jobRes, reviewsRes] = await Promise.all([
           jobsApi.get(parseInt(id)),
           reviewsApi.jobReviews(parseInt(id)).catch(() => ({ data: [] })),
@@ -64,9 +67,10 @@ export default function JobDetailPage() {
             setHasApplied(applied)
           } catch { /* ignore */ }
         }
-      } catch {
-        toast.error('Job not found')
-        navigate('/jobs')
+      } catch (err) {
+        const message = extractErrorMessage(err)
+        setErrorMessage(message)
+        toast.error(message)
       } finally {
         setLoading(false)
       }
@@ -76,16 +80,22 @@ export default function JobDetailPage() {
 
   const handleApply = async () => {
     if (!job) return
+    if (!resumeFile) {
+      toast.error('Please attach your resume before submitting.')
+      return
+    }
     setApplying(true)
     try {
       const formData = new FormData()
-      formData.append('job', String(job.id))
+      formData.append('job_id', String(job.id))
       if (coverLetter) formData.append('cover_letter', coverLetter)
-      if (resumeFile) formData.append('resume', resumeFile)
+      formData.append('resume', resumeFile)
       await applicationsApi.create(formData)
       toast.success('Application submitted successfully!')
       setApplyOpen(false)
       setHasApplied(true)
+      setCoverLetter('')
+      setResumeFile(null)
     } catch (err) {
       toast.error(extractErrorMessage(err))
     } finally {
@@ -111,7 +121,23 @@ export default function JobDetailPage() {
   const isSeeker = user?.role === 'seeker'
 
   if (loading) return <PageLoader />
-  if (!job) return null
+  if (!job) {
+    return (
+      <div className="container py-12">
+        <Card className="max-w-xl mx-auto">
+          <CardContent className="p-8 text-center space-y-3">
+            <h1 className="text-xl font-semibold">Unable to load this job</h1>
+            <p className="text-sm text-muted-foreground">
+              {errorMessage || 'This job may have been removed or is not available right now.'}
+            </p>
+            <Button asChild>
+              <Link to="/jobs">Back to jobs</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="container py-8 max-w-5xl">
@@ -130,7 +156,7 @@ export default function JobDetailPage() {
                   {job.company_logo ? (
                     <img src={job.company_logo} alt={job.company_name} className="h-full w-full object-cover" />
                   ) : (
-                    <Building2 className="h-7 w-7 text-muted-foreground" />
+                    <CompanyLogoFallback className="h-8 w-8" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -329,7 +355,7 @@ export default function JobDetailPage() {
               />
             </div>
             <div>
-              <Label htmlFor="resume">Resume (optional)</Label>
+              <Label htmlFor="resume">Resume (required)</Label>
               <div className="mt-1.5">
                 <input
                   id="resume"
@@ -338,9 +364,7 @@ export default function JobDetailPage() {
                   className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-3 file:rounded-md file:border file:border-input file:text-sm file:font-medium file:bg-background hover:file:bg-accent cursor-pointer"
                   onChange={e => setResumeFile(e.target.files?.[0] || null)}
                 />
-                {user?.profile?.resume && (
-                  <p className="text-xs text-muted-foreground mt-1">Leave empty to use your saved resume</p>
-                )}
+                <p className="text-xs text-muted-foreground mt-1">PDF or Word document, up to 5MB.</p>
               </div>
             </div>
           </div>
