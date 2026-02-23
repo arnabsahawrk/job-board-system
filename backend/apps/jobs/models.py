@@ -66,16 +66,6 @@ class Job(models.Model):
 
     application_deadline = models.DateTimeField(blank=True, null=True)
 
-    is_promoted = models.BooleanField(
-        default=False,
-        help_text="Whether job post is currently promoted",
-    )
-    promoted_until = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When promotion expires",
-    )
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

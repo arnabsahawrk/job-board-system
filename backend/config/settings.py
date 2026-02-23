@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     "apps.authentication",
     "apps.jobs",
     "apps.reviews",
-    "apps.payments",
 ]
 
 MIDDLEWARE = [
@@ -178,60 +177,6 @@ ANYMAIL = {
 DEFAULT_FROM_EMAIL = os.environ.get("BREVO_EMAIL")
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL")
-
-# ============ SSLCOMMERZ CONFIGURATION ============
-
-# SSLCOMMERZ Sandbox/Production Credentials
-SSLCOMMERZ_STORE_ID = os.environ.get("SSLCOMMERZ_STORE_ID")
-SSLCOMMERZ_STORE_PASSWORD = os.environ.get("SSLCOMMERZ_STORE_PASSWORD")
-
-# Enable/Disable Sandbox Mode
-# Set to True for testing, False for production
-SSLCOMMERZ_SANDBOX_MODE = os.environ.get("SSLCOMMERZ_SANDBOX_MODE", "True") == "True"
-
-# Backend URL for IPN callback
-# This is where SSLCOMMERZ will send payment status callbacks
-BACKEND_URL = os.environ.get("BACKEND_URL")
-
-IS_VERCEL = os.environ.get("VERCEL") == "1"
-
-LOG_DIR = BASE_DIR / "logs"
-if not IS_VERCEL:
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "payments_file": {
-            "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": str(LOG_DIR / "payments.log"),
-            "maxBytes": 1024 * 1024 * 10,  # 10MB
-            "backupCount": 5,
-            "formatter": "verbose",
-        },
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
-    "loggers": {
-        "apps.payments": {
-            "handlers": ["console"] if IS_VERCEL else ["payments_file", "console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
-}
-
 
 if DEBUG:
     INSTALLED_APPS += [
