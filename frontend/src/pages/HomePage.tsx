@@ -1,14 +1,11 @@
 import { jobsApi } from "@/api/jobs";
 import { reviewsApi } from "@/api/reviews";
-import { JobCard } from "@/components/common/JobCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
-import type { JobListItem, TopRecruiter } from "@/types";
+import type { TopRecruiter } from "@/types";
 import {
-  ArrowRight,
   BookOpen,
   Building,
   CheckCircle2,
@@ -132,7 +129,6 @@ const FEATURES = [
 export default function HomePage() {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
-  const [latestJobs, setLatestJobs] = useState<JobListItem[]>([]);
   const [topRecruiters, setTopRecruiters] = useState<TopRecruiter[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const navigate = useNavigate();
@@ -143,7 +139,6 @@ export default function HomePage() {
       reviewsApi.topRecruiters(3),
     ])
       .then(([jobsRes, recruitersRes]) => {
-        setLatestJobs(jobsRes.data.results);
         setTopRecruiters(recruitersRes.data);
       })
       .catch(() => {})
@@ -262,76 +257,6 @@ export default function HomePage() {
                 </Link>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Latest jobs ─────────────────────────────────────────────────── */}
-      <section className="py-16 md:py-20 bg-muted/30 border-y border-border/40">
-        <div className="container">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-1">Latest openings</h2>
-              <p className="text-sm text-muted-foreground">Freshly posted by verified employers</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="hidden sm:flex gap-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <Link to="/jobs">
-                View all <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
-
-          {loadingJobs ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-5 space-y-3">
-                    <div className="flex gap-3">
-                      <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                      <Skeleton className="h-5 w-20 rounded-full" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : latestJobs.length === 0 ? (
-            <div className="text-center py-16 text-sm text-muted-foreground">
-              No jobs posted yet — check back soon!
-            </div>
-          ) : (
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {latestJobs.map((job, i) => (
-                  <div
-                    key={job.id}
-                    className="animate-slide-up min-w-0"
-                    style={{ animationDelay: `${i * 40}ms` }}
-                  >
-                    <JobCard job={job} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8 text-center sm:hidden">
-            <Button variant="outline" asChild>
-              <Link to="/jobs">
-                View all jobs <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
           </div>
         </div>
       </section>
