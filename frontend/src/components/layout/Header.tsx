@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { BrandLink } from '@/components/branding/Brand'
 
 export default function Header() {
   const { user, logout, isAuthenticated } = useAuth()
@@ -51,12 +52,11 @@ export default function Header() {
       <div className="container flex h-14 items-center gap-4">
 
         {/* ─── Logo ─── */}
-        <Link to="/" className="flex items-center gap-2 shrink-0 mr-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-sm">
-            <span className="font-display font-bold text-base text-primary-foreground leading-none">J</span>
-          </div>
-          <span className="font-display font-bold text-lg hidden sm:block">Jobly</span>
-        </Link>
+        <BrandLink
+          className="shrink-0 mr-2"
+          iconClassName="h-8 w-8"
+          textClassName="hidden sm:inline text-lg"
+        />
 
         {/* ─── Desktop nav ─── */}
         <nav className="hidden md:flex items-center gap-0.5 flex-1">
