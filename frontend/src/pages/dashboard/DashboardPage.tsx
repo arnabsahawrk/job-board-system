@@ -10,7 +10,7 @@ import { applicationsApi } from '@/api/applications'
 import { jobsApi } from '@/api/jobs'
 import { reviewsApi } from '@/api/reviews'
 import type { StatusSummary, JobListItem, ReviewListItem, ApplicationListItem } from '@/types'
-import { timeAgo } from '@/lib/utils'
+import { extractErrorMessage, timeAgo } from '@/lib/utils'
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'destructive' | 'secondary' | 'pending' }> = {
   pending: { label: 'Pending', variant: 'pending' },
@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const isSeeker = user?.role === 'seeker'
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Seeker data
   const [statusSummary, setStatusSummary] = useState<StatusSummary | null>(null)
@@ -38,6 +39,7 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
+        setErrorMessage(null)
         if (isSeeker) {
           const [summaryRes, appsRes, reviewsRes] = await Promise.all([
             applicationsApi.statusSummary(),
@@ -57,7 +59,9 @@ export default function DashboardPage() {
           setRecentApps(appsRes.data.slice(0, 5))
           setReceivedReviews(reviewsRes.data.slice(0, 3))
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        setErrorMessage(extractErrorMessage(err))
+      }
       finally { setLoading(false) }
     }
     fetchData()
@@ -81,6 +85,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
+      {errorMessage && !loading && (
+        <Card className="mb-6 border-destructive/40">
+          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-destructive">{errorMessage}</p>
+            <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+              Refresh
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {isSeeker ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {loading ? (
